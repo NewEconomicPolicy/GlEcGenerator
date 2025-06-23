@@ -24,7 +24,6 @@ from getClimGenNC_ltd import ClimGenNC
 import hwsd_bil
 
 from hwsd_mu_globals_fns import gen_grid_cells_for_band
-from litter_and_orchidee_fns import resize_yrs_pi
 from prepare_ecosse_files_ss import update_progress, make_ecosse_file
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell
 from mngmnt_fns_and_class import ManagementSet, check_mask_location, get_hilda_land_uses
@@ -71,28 +70,6 @@ def generate_sims(form):
     climgen = ClimGenNC(form)  # create climate object
     if not (climgen.readCoordsLookup()):
         return
-
-    # instantiate a soil grid object and add requested grid resolution attributes to the form object
-    # ==============================================================================================
-    '''
-    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.hwsd_dir)
-    calculate_grid_cell(form, hwsd.granularity)
-    bbox = form.bbox
-
-    # create grid of mu_globals based on bounding box
-    # ===============================================
-    print('\nRetrieving soil data for study ' + study)
-    QApplication.processEvents()
-
-    nvals_read = hwsd.read_bbox_hwsd_mu_globals(bbox, form.hwsd_mu_globals, form.req_resol_upscale)
-
-    # retrieve dictionary consisting of mu_globals (keys) and number of occurences (values)
-    # =====================================================================================
-    mu_globals = hwsd.get_mu_globals_dict()
-    if mu_globals is None:
-        print('No soil records for AOI: {}\n'.format(bbox))
-        return
-   '''
 
     # main loop
     # =========

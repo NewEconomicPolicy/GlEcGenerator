@@ -33,7 +33,6 @@ from glbl_ecsse_low_level_fns_sv import fetch_soil_metrics
 from weather_datasets import change_weather_resource
 from initialise_funcs import read_config_file
 from initialise_common_funcs import initiation, build_and_display_studies, write_runsites_config_file
-from litter_and_orchidee_fns import fetch_nc_litter
 from wthr_generation_fns import generate_all_weather, make_wthr_coords_lookup
 from set_up_logging import OutLog
 
@@ -119,13 +118,6 @@ class Form(QWidget):
         grid.addWidget(w_use_high_cover, irow, 2)
         self.w_use_high_cover = w_use_high_cover
 
-        w_baseline = QCheckBox('Create baseline')
-        helpText = 'set PIs to zero'
-        w_baseline.setToolTip(helpText)
-        # grid.addWidget(w_baseline, irow, 3, 1, 2)
-        grid.addWidget(w_baseline, irow, 3)
-        self.w_baseline = w_baseline
-
         # AOI bounding box detail
         # =======================
         irow += 1
@@ -141,9 +133,6 @@ class Form(QWidget):
         self.w_hwsd_bbox = w_hwsd_bbox
         grid.addWidget(self.w_hwsd_bbox, irow, 1, 1, 5)
 
-        # irow += 1
-        # grid.addWidget(QLabel(''), irow, 2)  # spacer
-
         # create weather and grid resolution
         # ==================================
         irow = commonSection(self, grid, irow)
@@ -151,34 +140,7 @@ class Form(QWidget):
         irow += 1
         grid.addWidget(QLabel(''), irow, 2)  # spacer
 
-        # command line
-        # ============
-        irow += 1
-        w_create_files = QPushButton("Create sim files")
-        helpText = 'Generate ECOSSE simulation file sets corresponding to ordered HWSD global mapping unit set in CSV file'
-        w_create_files.setToolTip(helpText)
-        # w_create_files.setEnabled(False)
-        w_create_files.setFixedWidth(STD_BTN_SIZE_120)
-        grid.addWidget(w_create_files, irow, 0, )
-        w_create_files.clicked.connect(self.createSimsClicked)
-        self.w_create_files = w_create_files
-
-        w_auto_spec = QCheckBox('Auto run Ecosse')
-        helpText = 'Select this option to automatically run Ecosse'
-        w_auto_spec.setToolTip(helpText)
-        grid.addWidget(w_auto_spec, irow, 1)
-        self.w_auto_spec = w_auto_spec
-
-        w_run_ecosse = QPushButton('Run Ecosse')
-        helpText = 'Select this option to create a configuration file for the spec.py script and run it.\n' \
-                   + 'The spec.py script runs the ECOSSE programme'
-        w_run_ecosse.setToolTip(helpText)
-        w_run_ecosse.setFixedWidth(STD_BTN_SIZE_80)
-        w_run_ecosse.clicked.connect(self.runEcosseClicked)
-        grid.addWidget(w_run_ecosse, irow, 2)
-        self.w_run_ecosse = w_run_ecosse
-
-        # =============================================
+        # ================== command lines ===========================
         irow += 1
         irow = glblecss_limit_sims(self, grid, irow)
 
@@ -186,13 +148,13 @@ class Form(QWidget):
         irow += 1
         icol = 1
 
-        w_del_sims = QPushButton("Del sims")
-        helpText = 'Remove all simulation files for this study'
-        w_del_sims.setToolTip(helpText)
-        w_del_sims.setFixedWidth(STD_BTN_SIZE_80)
-        w_del_sims.setEnabled(False)
-        grid.addWidget(w_del_sims, irow, icol)
-        w_del_sims.clicked.connect(self.cleanSimsClicked)
+        w_ovewrite = QPushButton("Ovewrite")
+        helpText = 'Ovewrite existing weather or soil for this project'
+        w_ovewrite.setToolTip(helpText)
+        w_ovewrite.setFixedWidth(STD_BTN_SIZE_80)
+        w_ovewrite.setEnabled(False)
+        grid.addWidget(w_ovewrite, irow, icol)
+        w_ovewrite.clicked.connect(self.cleanSimsClicked)
 
         icol += 1
         w_clear = QPushButton("Clear window", self)
@@ -354,15 +316,6 @@ class Form(QWidget):
         generate_all_weather(self)
 
         return
-
-    def changeCarbonVar(self):
-        """
-        C
-        """
-        carbon_var = self.combo08.currentText()
-        self.w_var_desc.setText(self.carbon_vars[carbon_var])
-        fname = self.w_nc_lttr_fn.text()
-        fetch_nc_litter(self, fname)
 
     def viewRunReport(self):
         """

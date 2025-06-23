@@ -20,7 +20,6 @@ from json import dump as json_dump, load as json_load
 from shape_funcs import calculate_area
 from weather_datasets import change_weather_resource, record_weather_settings
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell
-from litter_and_orchidee_fns import fetch_nc_litter
 
 MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'plntFncTyp', 'piNcFname', 'carbonVar',
                                                                 'maxSims', 'endBand', 'strtBand', 'baseLine']
@@ -50,20 +49,12 @@ def read_config_file(form):
     grp = 'minGUI'
     for key in MIN_GUI_LIST:
         if key not in config[grp]:
-            if key == 'piNcFname':
-                config[grp][key] = ''
-            elif key == 'carbonVar':
-                config[grp][key] = 'TOTAL_LITTER_SOIL_c'
-            elif key == 'plntFncTyp':
-                config[grp][key] = 'SoilBareGlobal'
-            elif key == 'maxSims':
+            if key == 'maxSims':
                 config[grp][key] = str(9999999)
             elif key == 'strtBand':
                 config[grp][key] = str(0)
             elif key == 'endBand':
                 config[grp][key] = str(360)
-            elif key == 'baseLine':
-                config[grp][key] = False
             else:
                 print(ERROR_STR + 'setting {} is required in group {} of config file {}'.format(key, grp, config_file))
                 return False
@@ -75,20 +66,6 @@ def read_config_file(form):
     form.w_max_sims.setText(config[grp]['maxSims'])
     form.w_strt_band.setText(config[grp]['strtBand'])
     form.w_end_band.setText(config[grp]['endBand'])
-    form.w_baseline.setChecked(config[grp]['baseLine'])
-
-    # enable VC ORCHIDEE NC file
-    # ===========================
-    nc_fn = config[grp]['piNcFname']
-    if fetch_nc_litter(form, nc_fn):
-        form.w_create_files.setEnabled(True)
-    else:
-        form.w_create_files.setEnabled(False)
-
-    form.w_nc_lttr_fn.setText(nc_fn)
-    form.w_combo_pfts.setCurrentText(config[grp]['plntFncTyp'])
-
-    form.combo08.setCurrentText(config[grp]['carbonVar'])
 
     weather_resource = config[grp]['weatherResource']
     if weather_resource == '':
@@ -210,12 +187,8 @@ def write_config_file(form, message_flag=True):
     config = {
         'minGUI': {
             'bbox': bbox,
-            'snglPntFlag': False,
             'weatherResource': weather_resource,
             'aveWthrFlag': form.w_ave_weather.isChecked(),
-            'plntFncTyp': form.w_combo_pfts.currentText(),
-            'piNcFname': form.w_nc_lttr_fn.text(),
-            'carbonVar': form.combo08.currentText(),
             'usePolyFlag': False,
             'baseLine': form.w_baseline.isChecked(),
             'maxSims': form.w_max_sims.text(),
@@ -229,7 +202,6 @@ def write_config_file(form, message_flag=True):
             'climScnr': scenario,
             'futStrtYr': sim_strt_year,
             'futEndYr': sim_end_year,
-            'eqilMode': form.w_equimode.text(),
             'gridResol': grid_resol
         },
         'landuseGUI': {
