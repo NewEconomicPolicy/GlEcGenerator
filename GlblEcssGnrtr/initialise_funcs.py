@@ -21,9 +21,8 @@ from shape_funcs import calculate_area
 from weather_datasets import change_weather_resource, record_weather_settings
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell
 
-MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'plntFncTyp', 'piNcFname', 'carbonVar',
-                                                                'maxSims', 'endBand', 'strtBand', 'baseLine']
-CMN_GUI_LIST = ['study', 'histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol', 'eqilMode']
+MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'maxSims', 'endBand', 'strtBand']
+CMN_GUI_LIST = ['study', 'histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol']
 
 BBOX_DEFAULT = [116.90045, 28.2294, 117.0, 29.0]  # bounding box default - somewhere in SE Europe
 sleepTime = 5
