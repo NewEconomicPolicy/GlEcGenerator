@@ -104,7 +104,7 @@ def simplify_soil_recs(soil_recs, use_dom_soil_flag):
     print(mess + '\tnum raw sub-soils: {}\tafter compression: {}'.format(num_raw, num_compress))
     return new_soil_recs
 
-def _simplify_aoi(aoi_res):
+def simplify_aoi(aoi_res):
     """
     simplify AOI records
     """
@@ -200,7 +200,7 @@ def _write_to_soil_file(form, soil_csv, num_band):
     hwsd.bad_muglobals = form.hwsd_mu_globals.bad_mu_globals
     aoi_res, bbox = gen_grid_cells_for_band(hwsd, form.req_resol_upscale)
     if form.w_use_high_cover.isChecked():
-        aoi_res = _simplify_aoi(aoi_res)
+        aoi_res = simplify_aoi(aoi_res)
 
     lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
     num_meta_cells = len(aoi_res)
