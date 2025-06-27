@@ -23,7 +23,6 @@ from copy import copy
 
 from PyQt5.QtWidgets import QApplication
 
-from soil_related_funcs import simplify_soil_recs, _simplify_aoi
 import hwsd_bil
 
 from hwsd_mu_globals_fns import gen_grid_cells_for_band
