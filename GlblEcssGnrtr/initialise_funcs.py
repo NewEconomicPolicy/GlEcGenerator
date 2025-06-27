@@ -58,7 +58,16 @@ def read_config_file(form):
                 print(ERROR_STR + 'setting {} is required in group {} of config file {}'.format(key, grp, config_file))
                 return False
 
-    form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)    # post HWSD CSV file details
+    # bounding box set up
+    # ===================
+    bbox = config[grp]['bbox']
+    area = calculate_area(bbox)
+    ll_lon, ll_lat, ur_lon, ur_lat = bbox
+    form.w_ll_lon.setText(str(ll_lon))
+    form.w_ll_lat.setText(str(ll_lat))
+    form.w_ur_lon.setText(str(ur_lon))
+    form.w_ur_lat.setText(str(ur_lat))
+    # form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)    # post HWSD CSV file details
 
     # post limit simulations settings
     # ===============================

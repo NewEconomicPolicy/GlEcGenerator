@@ -230,7 +230,7 @@ def exit_clicked(form, write_config_flag = True):
 
     return
 
-def changeConfigFile(form):
+def changeProjectFile(form):
 
     # identify and read the new configuration file
     new_study = form.combo00s.currentText()
@@ -247,7 +247,7 @@ def changeConfigFile(form):
 
     return
 
-def studyTextChanged(form):
+def projectTextChanged(form):
 
         # replace spaces with underscores and rebuild study list
         # ======================================================
