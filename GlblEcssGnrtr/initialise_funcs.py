@@ -14,8 +14,9 @@ __version__ = '0.0.0'
 # Version history
 # ---------------
 # 
-from os.path import exists, isfile, join
+from os.path import exists, isfile, join, splitext
 from json import dump as json_dump, load as json_load
+from glob import glob
 
 from shape_funcs import calculate_area
 from weather_datasets import change_weather_resource, record_weather_settings
@@ -27,6 +28,30 @@ CMN_GUI_LIST = ['study', 'histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'fu
 BBOX_DEFAULT = [116.90045, 28.2294, 117.0, 29.0]  # bounding box default - somewhere in SE Europe
 sleepTime = 5
 ERROR_STR = '*** Error *** '
+
+def build_and_display_projects(form):
+    """
+    is called at start up and when user creates a new project
+    """
+
+    glbl_ecsse_str = form.glbl_ecsse_str
+    config_files = glob(form.config_dir + '/' + glbl_ecsse_str + '*.txt')
+    projects = []
+    for fname in config_files:
+        dummy, remainder = fname.split(glbl_ecsse_str)
+        study, dummy = splitext(remainder)
+        if study != '':
+            projects.append(study)
+    form.projects = projects
+
+    # display projects list
+    # ====================
+    if hasattr(form, 'combo00s'):
+        form.combo00s.clear()
+        for study in projects:
+            form.combo00s.addItem(study)
+
+    return config_files
 
 def read_config_file(form):
     """
