@@ -104,7 +104,7 @@ def simplify_soil_recs(soil_recs, use_dom_soil_flag):
     print(mess + '\tnum raw sub-soils: {}\tafter compression: {}'.format(num_raw, num_compress))
     return new_soil_recs
 
-def simplify_aoi(aoi_res):
+def _simplify_aoi(aoi_res):
     """
     simplify AOI records
     """
