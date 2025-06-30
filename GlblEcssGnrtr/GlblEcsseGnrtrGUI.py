@@ -26,7 +26,7 @@ from common_componentsGUI import (exit_clicked, commonSection, changeProjectFile
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell, grid_resolutions, glblecss_limit_sims, glblecss_bounding_box
 
 from generate_soil_vars_nc import make_soil_nc_outputs
-from soil_related_funcs import generate_all_soil_metrics
+from glbl_ecsse_high_level_sp import generate_all_soil_metrics
 from glbl_ecsse_low_level_fns_sv import fetch_soil_metrics
 
 from weather_datasets import change_weather_resource

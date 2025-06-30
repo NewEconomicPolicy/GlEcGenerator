@@ -1,6 +1,6 @@
 """
 #-------------------------------------------------------------------------------
-# Name:        soil_related_funcs.py
+# Name:        glbl_ecsse_high_level_sp.py
 # Purpose:     consist of high level functions invoked by main GUI
 # Author:      Mike Martin
 # Created:     11/12/2015
@@ -10,7 +10,7 @@
 #-------------------------------------------------------------------------------
 #
 """
-__prog__ = 'soil_related_funcs.py'
+__prog__ = 'glbl_ecsse_high_level_sp.py'
 __version__ = '0.0.1'
 __author__ = 's03mm5'
 
