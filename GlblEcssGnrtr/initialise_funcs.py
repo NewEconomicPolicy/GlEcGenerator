@@ -14,21 +14,273 @@ __version__ = '0.0.0'
 # Version history
 # ---------------
 # 
-from os.path import exists, isfile, join, splitext
-from json import dump as json_dump, load as json_load
+from os.path import exists, normpath, split, splitext, isfile, isdir, join, expanduser
+from os import getcwd, remove, makedirs, mkdir, name as os_name
+from json import load as json_load, dump as json_dump
+from time import sleep
+import sys
 from glob import glob
+from netCDF4 import Dataset, num2date
+from PyQt5.QtWidgets import QApplication
 
 from shape_funcs import calculate_area
 from weather_datasets import change_weather_resource, record_weather_settings
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell
 
+from hwsd_mu_globals_fns import HWSD_mu_globals_csv
+from glbl_ecss_cmmn_cmpntsGUI import print_resource_locations
+from set_up_logging import set_up_logging
+from weather_datasets import read_weather_dsets_detail
+from hwsd_bil import check_hwsd_integrity
+
 MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'maxSims', 'endBand', 'strtBand']
 CMN_GUI_LIST = ['study', 'histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol']
 
+WARN_STR = '*** Warning *** '
+ERROR_STR = '*** Error *** '
+SETTINGS_LIST = ['config_dir', 'fname_png', 'hwsd_dir', 'log_dir', 'mask_fn', 'shp_dir', 'prj_drive', 'python_exe',
+                 'weather_dir']
+RUN_SETTINGS = ['completed_max', 'start_at_band', 'space_remaining_limit', 'kml_flag', 'soil_test_flag', 'zeros_file']
 BBOX_DEFAULT = [116.90045, 28.2294, 117.0, 29.0]  # bounding box default - somewhere in SE Europe
 sleepTime = 5
-ERROR_STR = '*** Error *** '
 
+def initiation(form, variation=''):
+    """
+    this function is called to initiate the programme to process non-GUI settings.
+    """
+    glbl_ecsse_str = 'global_ecosse_config_hwsd_'
+    fname_setup = 'global_ecosse_setup' + variation + '.json'
+
+    # retrieve settings
+    # =================
+    _read_setup_file(form, fname_setup, variation)
+
+    form.glbl_ecsse_str = glbl_ecsse_str
+    config_files = build_and_display_projects(form)
+
+    # form.config_file = join(form.config_dir, 'global_ecosse_config.txt' ) # configuration file
+    if len(config_files) > 0:
+        form.config_file = config_files[0]
+    else:
+        form.config_file = form.config_dir + '/' + glbl_ecsse_str + 'dummy.txt'
+
+    fname_model_switches = 'Model_Switches.dat'
+    cwDir = getcwd()
+    default_model_switches = join(cwDir, fname_model_switches)
+    if isfile(default_model_switches):
+        form.default_model_switches = default_model_switches
+        print('\tmodel switches file: ' + default_model_switches + '\n')
+    else:
+        print('{} file does not exist in directory {}'.format(fname_model_switches, cwDir))
+        sleep(sleepTime)
+        form.default_model_switches = None
+
+    # set up logging
+    # ==============
+    form.settings['log_dir'] = form.log_dir
+    set_up_logging(form, 'global_ecosse_min')
+
+    # create dump files for grid point with mu_global 0
+    form.fobjs = {}
+    output_fnames = list(['nodata_muglobal_cells_v2b.csv'])
+    if form.zeros_file:
+        output_fnames.append('zero_muglobal_cells_v2b.csv')
+    for file_name in output_fnames:
+        # long_fname = join(form.log_dir, file_name)
+        home_dir = expanduser("~")
+        long_fname = join(home_dir, file_name)
+        key = file_name.split('_')[0]
+        if exists(long_fname):
+            try:
+                remove(long_fname)
+            except PermissionError as err:
+                mess = 'Failed to delete mu global zeros dump file: {}\n\t{} '.format(long_fname, err)
+                print(mess + '\n\t- check that there are no other instances of GlblEcosse')
+                sleep(sleepTime)
+                sys.exit(0)
+
+        form.fobjs[key] = open(long_fname, 'w')
+
+    # if specified then create pandas object read deom HWSD CSV file
+    # ==============================================================
+    if 'aoi_fname' in form.settings:
+        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, form.settings['aoi_fname'])
+        # print('Reading AOI HWSD file ' + form.settings['aoi_fname'])
+
+    return
+
+def _read_setup_file(form, fname_setup, variation=''):
+    """
+    read settings used for programme from the setup file, if it exists,
+    or create setup file using default values if file does not exist
+    """
+    func_name = __prog__ + ' _read_setup_file'
+
+    setup_file = join(getcwd(), fname_setup)
+    if exists(setup_file):
+        try:
+            with open(setup_file, 'r') as fsetup:
+                settings = json_load(fsetup)
+        except (OSError, IOError) as e:
+            sleep(sleepTime)
+            exit(0)
+    else:
+        settings = write_default_setup_file(setup_file)
+        print('Read default setup file ' + setup_file)
+
+    # validate setup file
+    # ===================
+    grp = 'setup'
+    for key in SETTINGS_LIST:
+        if key not in settings[grp]:
+            print(ERROR_STR + 'setting {} is required in setup file {} '.format(key, setup_file))
+            sleep(sleepTime)
+            exit(0)
+
+    form.settings = {}
+    for sttng in SETTINGS_LIST:
+        form.settings[sttng] = settings[grp][sttng]
+
+    # check settings
+    # ==============
+    prj_drive = form.settings['prj_drive']
+    if not isdir(prj_drive):
+        print(ERROR_STR + 'invalid project drive: ' + prj_drive)
+        sleep(sleepTime)
+        exit(0)
+
+    # ==============
+    log_dir = form.settings['log_dir']
+    if not isdir(log_dir):
+        makedirs(log_dir)
+
+    # ==============
+    config_dir = form.settings['config_dir']
+    if not isdir(config_dir):
+        makedirs(config_dir)
+
+    # ==============
+    mask_fn = form.settings['mask_fn']
+    mess = '\tHILDA land use mask file: ' + mask_fn
+    if isfile(mask_fn):
+        print(mess)
+    else:
+        if mask_fn != '':
+            print(WARN_STR + mess + ' does not exist')
+        form.settings['mask_fn'] = None
+
+    # ==============
+    python_exe = form.settings['python_exe']
+    mess = '\tPython interpreter: ' + python_exe
+    if isfile(python_exe):
+        print(mess)
+    else:
+        print(WARN_STR + mess + ' does not exist')
+        form.settings['python_exe'] = None
+
+    # HWSD and weather are crucial
+    # ============================
+    err_mess = ERROR_STR + 'reading setup file\n\t' + setup_file
+    hwsd_dir = form.settings['hwsd_dir']
+    if isdir(hwsd_dir):
+        check_hwsd_integrity(hwsd_dir)
+    else:
+        print(err_mess + 'HWSD directory {} must exist'.format(hwsd_dir))
+        sleep(sleepTime)
+        exit(0)
+
+    # ===================
+    weather_dir = form.settings['hwsd_dir']
+    if isdir(weather_dir):
+        form.weather_dir = weather_dir
+        form.settings['weather_dir'] = weather_dir
+    else:
+        print(err_mess + 'Climate directory {} must exist'.format(weather_dir))
+        sleep(sleepTime)
+        exit(0)
+
+    # check weather data
+    # ==================
+    avlbl_wthr_rsrcs = ['CRU', 'EObs', 'CHESS', 'HARMONIE', 'EFISCEN-ISIMIP']
+    rqurd_wthr_rsrcs = ['CRU' 'EFISCEN-ISIMIP']
+    read_weather_dsets_detail(form, rqurd_wthr_rsrcs)
+
+    # TODO: most of these are not used
+    # ================================
+    grp = 'run_settings'
+    for key in RUN_SETTINGS:
+        if key not in settings[grp]:
+            print(WARN_STR + 'setting {} is required in setup file {} '.format(key, setup_file))
+
+    for sttng in RUN_SETTINGS:
+        form.settings[sttng] = settings[grp][sttng]
+
+    # report settings
+    # ===============
+    lta_nc_fname = None
+    print_resource_locations(setup_file, config_dir, hwsd_dir, weather_dir, lta_nc_fname, prj_drive, log_dir)
+
+    return True
+
+def write_default_setup_file(setup_file):
+    """
+    stanza if setup_file needs to be created
+    """
+    # Windows only for now
+    # =====================
+    os_system = os_name
+    if os_system != 'nt':
+        print('Operating system is ' + os_system + 'should be nt - cannot proceed with writing default setup file')
+        sleep(sleepTime)
+        sys.exit(0)
+
+    # return list of drives
+    # =====================
+    import win32api
+
+    drives = win32api.GetLogicalDriveStrings()
+    drives = drives.split('\000')[:-1]
+    if 'S:\\' in drives:
+        root_dir_app = 'S:\\tools\\'  # Global Ecosse installed here
+        root_dir_user = 'H:\\'  # user files reside here
+    else:
+        root_dir_app = 'E:\\'
+        root_dir_user = 'C:\\AbUniv\\'
+
+    suite_path = root_dir_app + 'GlobalEcosseSuite\\'
+    data_path = root_dir_app + 'GlobalEcosseData\\'
+    outputs_path = root_dir_app + 'GlobalEcosseOutputs\\'
+    root_dir_user += 'GlobalEcosseSuite\\'
+
+    _default_setup = {
+        'setup': {
+            'config_dir': root_dir_user + 'config',
+            'fname_png': join(suite_path + 'Images', 'Tree_of_life.PNG'),
+            'hwsd_dir': data_path + 'HWSD_NEW',
+            'images_dir': outputs_path + 'images',
+            'log_dir': root_dir_user + 'logs',
+            'mask_fn': data_path + 'Hilda_land_use\\hildap_vGLOB-1.0-f',
+            'python_exe': 'E:\\Python38\\python.exe',
+            'runsites_py': 'G:\\AbUnivGit\\RunEcssApp\\SpecGui\\spec_run.py',
+            'shp_dir': data_path + 'CountryShapefiles',
+            'sims_dir': outputs_path + 'EcosseSims',
+            'weather_dir': data_path
+        },
+        'run_settings': {
+            'completed_max': 5000000000,
+            'start_at_band': 0,
+            'space_remaining_limit': 1270,
+            'kml_flag': True,
+            'soil_test_flag': False,
+            'zeros_file': False
+        }
+    }
+    # create setup file
+    # =================
+    with open(setup_file, 'w') as fsetup:
+        json_dump(_default_setup, fsetup, indent=2, sort_keys=True)
+        fsetup.close()
+        return _default_setup
 def build_and_display_projects(form):
     """
     is called at start up and when user creates a new project

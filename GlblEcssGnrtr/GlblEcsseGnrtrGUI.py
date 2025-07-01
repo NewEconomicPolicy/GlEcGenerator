@@ -30,8 +30,7 @@ from glbl_ecsse_high_level_sp import generate_all_soil_metrics
 from glbl_ecsse_low_level_fns_sv import fetch_soil_metrics
 
 from weather_datasets import change_weather_resource
-from initialise_funcs import read_config_file
-from initialise_common_funcs import initiation, build_and_display_studies, write_runsites_config_file
+from initialise_funcs import read_config_file, initiation, build_and_display_projects
 from wthr_generation_fns import generate_all_weather, make_wthr_coords_lookup
 from set_up_logging import OutLog
 
@@ -252,7 +251,7 @@ class Form(QWidget):
         lh_vbox = QVBoxLayout()
 
         lbl20 = QLabel()
-        lbl20.setPixmap(QPixmap(self.fname_png))
+        lbl20.setPixmap(QPixmap(self.settings['fname_png']))
         lbl20.setScaledContents(True)
         lh_vbox.addWidget(lbl20)
 
@@ -387,7 +386,7 @@ class Form(QWidget):
                 print('*** study name must not have spaces ***')
             else:
                 save_clicked(self)
-                build_and_display_studies(self)
+                build_and_display_projects(self)
 
     def cancelClicked(self):
         """
