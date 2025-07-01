@@ -86,7 +86,7 @@ class Form(QWidget):
         for project in self.projects:
             w_combo00s.addItem(str(project))
         grid.addWidget(w_combo00s, irow, 3)
-        w_combo00s.currentIndexChanged[str].connect(self.changePrjDefnFile)
+        w_combo00s.currentIndexChanged[str].connect(self.changeProject)
         self.w_combo00s = w_combo00s
 
         irow += 1
@@ -417,17 +417,71 @@ class Form(QWidget):
         """
         changeProjectFile(self)
 
-    def changeProjectFile(self):
+    def changeProject(self):
         """
         permits change of configuration file
         """
-        changeProjectFile(self)
+        pass
+        # changeProjectFile(self)
 
     def projectTextChanged(self):
         """
         C
         """
         projectTextChanged(self)
+
+    def viewRunReport(self):
+        """
+        C
+        """
+        if self.band_reports is None:
+            print(WARN_STR + 'Nothing to report')
+            QApplication.processEvents()
+            return
+
+        notepad_flag = True
+        dictr = {}
+        for nline, line in enumerate(self.band_reports):
+            if line is None:
+                continue
+
+            atoms = line.split()
+            if nline == 0:
+                headers = [atoms[0][0:-1], atoms[2] + ' yes', atoms[2] + ' no', atoms[8][0:-1], 'no PIs',
+                           atoms[-2][0:-1]]
+                dictr = {field: [] for field in headers}
+
+            dictr['Band'].append(atoms[1])
+            dictr['forest yes'].append(atoms[4])
+            dictr['forest no'].append(atoms[6])
+            dictr['weather'].append(atoms[9])
+            dictr['no PIs'].append(atoms[13])
+            dictr['completed'].append(atoms[15])
+
+        if len(dictr) == 0:
+            print(WARN_STR + 'Nothing to report')
+            QApplication.processEvents()
+            return
+
+        dictr_df = DataFrame(dictr)
+        if notepad_flag:
+            scrtch_file = join(self.settings['log_dir'], 'run_report')
+            dictr_df.to_csv(scrtch_file, index=False, sep='\t')
+            ret_code = subprocess.run(['notepad.exe', scrtch_file])
+        else:
+            mess_content = dictr_df.to_string(index=False, justify='center', col_space=10)
+            w_mess_box = QMessageBox()
+            w_mess_box.setWindowTitle("Banded simulations report")
+            w_mess_box.setText(mess_content)
+            w_mess_box.setStandardButtons(QMessageBox.Cancel)
+            ret_code = w_mess_box.exec()
+        return
+
+    def cleanSimsClicked(self):
+        """
+        C
+        """
+        print('under construction')
 
 def main():
     """

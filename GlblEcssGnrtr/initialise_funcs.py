@@ -56,50 +56,12 @@ def initiation(form, variation=''):
     _read_setup_file(form, fname_setup, variation)
 
     form.glbl_ecsse_str = glbl_ecsse_str
-    config_files = build_and_display_projects(form)
-
-    # form.config_file = join(form.config_dir, 'global_ecosse_config.txt' ) # configuration file
-    if len(config_files) > 0:
-        form.config_file = config_files[0]
-    else:
-        form.config_file = form.config_dir + '/' + glbl_ecsse_str + 'dummy.txt'
-
-    fname_model_switches = 'Model_Switches.dat'
-    cwDir = getcwd()
-    default_model_switches = join(cwDir, fname_model_switches)
-    if isfile(default_model_switches):
-        form.default_model_switches = default_model_switches
-        print('\tmodel switches file: ' + default_model_switches + '\n')
-    else:
-        print('{} file does not exist in directory {}'.format(fname_model_switches, cwDir))
-        sleep(sleepTime)
-        form.default_model_switches = None
+    form.project_files = build_and_display_projects(form)
+    form.band_reports = None
 
     # set up logging
     # ==============
-    form.settings['log_dir'] = form.log_dir
     set_up_logging(form, 'global_ecosse_min')
-
-    # create dump files for grid point with mu_global 0
-    form.fobjs = {}
-    output_fnames = list(['nodata_muglobal_cells_v2b.csv'])
-    if form.zeros_file:
-        output_fnames.append('zero_muglobal_cells_v2b.csv')
-    for file_name in output_fnames:
-        # long_fname = join(form.log_dir, file_name)
-        home_dir = expanduser("~")
-        long_fname = join(home_dir, file_name)
-        key = file_name.split('_')[0]
-        if exists(long_fname):
-            try:
-                remove(long_fname)
-            except PermissionError as err:
-                mess = 'Failed to delete mu global zeros dump file: {}\n\t{} '.format(long_fname, err)
-                print(mess + '\n\t- check that there are no other instances of GlblEcosse')
-                sleep(sleepTime)
-                sys.exit(0)
-
-        form.fobjs[key] = open(long_fname, 'w')
 
     # if specified then create pandas object read deom HWSD CSV file
     # ==============================================================
@@ -158,6 +120,8 @@ def _read_setup_file(form, fname_setup, variation=''):
     config_dir = form.settings['config_dir']
     if not isdir(config_dir):
         makedirs(config_dir)
+
+    form.settings['config_file'] = join(config_dir, 'XXX.jsom')
 
     # ==============
     mask_fn = form.settings['mask_fn']
@@ -285,15 +249,15 @@ def build_and_display_projects(form):
     """
     is called at start up and when user creates a new project
     """
-
-    glbl_ecsse_str = form.glbl_ecsse_str
-    config_files = glob(form.config_dir + '/' + glbl_ecsse_str + '*.txt')
+    prj_drive = form.settings['prj_drive']
     projects = []
-    for fname in config_files:
-        dummy, remainder = fname.split(glbl_ecsse_str)
-        study, dummy = splitext(remainder)
-        if study != '':
-            projects.append(study)
+    for path_nm in glob(prj_drive + 'Gl*'):
+        if isdir(path_nm):
+            sims_dir = join(path_nm, 'EcosseSims')
+            if isdir(sims_dir):
+                project = split(path_nm)[1]
+                projects.append(split(project))
+
     form.projects = projects
 
     # display projects list
@@ -301,17 +265,17 @@ def build_and_display_projects(form):
     if hasattr(form, 'combo00s'):
         form.combo00s.clear()
         for study in projects:
-            form.combo00s.addItem(study)
+            form.w_combo00s.addItem(study)
 
-    return config_files
+    return projects
 
 def read_config_file(form):
     """
     read widget settings used in the previous programme session from the config file, if it exists,
     or create config file using default settings if config file does not exist
     """
-    config_file = form.config_file
-    if exists(config_file):
+    config_file = form.settings['config_file']
+    if isfile(config_file):
         try:
             with open(config_file, 'r') as fconfig:
                 config = json_load(fconfig)
