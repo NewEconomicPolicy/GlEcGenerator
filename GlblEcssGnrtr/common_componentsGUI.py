@@ -21,7 +21,7 @@ from os.path import normpath, isfile
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QLabel, QLineEdit, QComboBox, QPushButton, QCheckBox, QRadioButton, QButtonGroup)
 
-from initialise_funcs import write_study_definition_file, read_config_file, write_config_file
+from initialise_funcs import read_config_file, write_config_file
 
 WDGT_SIZE_40 = 40
 WDGT_SIZE_60 = 60
@@ -46,7 +46,7 @@ XLS_FILE = 2
 
 def _chck_box_inpt_choices(form, grid, irow):
     """
-
+    C
     """
     irow += 1
 
@@ -199,21 +199,20 @@ def commonSection(form, grid, irow):
     return irow
 
 def save_clicked(form):
-        """
-        write last GUI selections
-        """
-        #
-        write_config_file(form)
-        write_study_definition_file(form)
-
-        return
+    """
+    write last GUI selections
+    """
+    #
+    write_config_file(form)
+    return
 
 def exit_clicked(form, write_config_flag = True):
-
+    """
+    C
+    """
     # write last GUI selections
     if write_config_flag:
         write_config_file(form)
-        write_study_definition_file(form)
 
     # close various files
     if hasattr(form, 'fobjs'):
@@ -227,23 +226,6 @@ def exit_clicked(form, write_config_flag = True):
         pass
 
     form.close()
-
-    return
-
-def changeProjectFile(form):
-
-    # identify and read the new configuration file
-    new_study = form.combo00s.currentText()
-    new_config = 'global_ecosse_config_hwsd_' + new_study
-    config_file = normpath(form.config_dir + '/' + new_config + '.txt')
-
-    if isfile(config_file):
-        form.config_file = config_file
-        read_config_file(form)
-        form.study = new_study
-        form.w_study.setText(new_study)
-    else:
-        print('Could not locate ' + config_file)
 
     return
 

@@ -22,7 +22,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
                              QComboBox, QPushButton, QCheckBox, QFileDialog, QTextEdit, QMessageBox)
 
-from common_componentsGUI import (exit_clicked, commonSection, changeProjectFile, projectTextChanged, save_clicked)
+from common_componentsGUI import (exit_clicked, commonSection, projectTextChanged, save_clicked)
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell, grid_resolutions, glblecss_limit_sims, glblecss_bounding_box
 
 from generate_soil_vars_nc import make_soil_nc_outputs
@@ -66,26 +66,16 @@ class Form(QWidget):
         # line 0
         # ======
         irow = 0
-        w_prj_pshb = QPushButton("Project:")
-        helpText = 'Select Global Ecosse project'
-        w_prj_pshb.setToolTip(helpText)
-        grid.addWidget(w_prj_pshb, irow, 0)
-        w_prj_pshb.clicked.connect(self.fetchPrjDefn)
-
-        w_prj_nm = QLabel()
-        grid.addWidget(w_prj_nm, irow, 1,)
-        self.w_prj_nm = w_prj_nm
-        
-        w_lbl00s = QLabel('projects:')
+        w_lbl00s = QLabel('Projects:')
         w_lbl00s.setAlignment(Qt.AlignRight)
         helpText = 'list of projects'
         w_lbl00s.setToolTip(helpText)
-        grid.addWidget(w_lbl00s, irow, 2)
+        grid.addWidget(w_lbl00s, irow, 0)
 
         w_combo00s = QComboBox()
         for project in self.projects:
             w_combo00s.addItem(str(project))
-        grid.addWidget(w_combo00s, irow, 3)
+        grid.addWidget(w_combo00s, irow, 1)
         w_combo00s.currentIndexChanged[str].connect(self.changeProject)
         self.w_combo00s = w_combo00s
 
@@ -400,29 +390,14 @@ class Form(QWidget):
         """
         exit cleanly
         """
-        # check for spaces
-        # ================
-        study = self.w_study.text()
-        if study == '':
-            print('study cannot be blank')
-        else:
-            if study.find(' ') >= 0:
-                print('*** study name must not have spaces ***')
-            else:
-                exit_clicked(self)
 
-    def fetchPrjDefn(self):
-        """
-        permits change of configuration file
-        """
-        changeProjectFile(self)
+        exit_clicked(self)
 
     def changeProject(self):
         """
         permits change of configuration file
         """
         pass
-        # changeProjectFile(self)
 
     def projectTextChanged(self):
         """
@@ -430,54 +405,13 @@ class Form(QWidget):
         """
         projectTextChanged(self)
 
-    def viewRunReport(self):
+    def cleanSimsClicked(self):
         """
         C
         """
-        if self.band_reports is None:
-            print(WARN_STR + 'Nothing to report')
-            QApplication.processEvents()
-            return
+        print('under construction')
 
-        notepad_flag = True
-        dictr = {}
-        for nline, line in enumerate(self.band_reports):
-            if line is None:
-                continue
-
-            atoms = line.split()
-            if nline == 0:
-                headers = [atoms[0][0:-1], atoms[2] + ' yes', atoms[2] + ' no', atoms[8][0:-1], 'no PIs',
-                           atoms[-2][0:-1]]
-                dictr = {field: [] for field in headers}
-
-            dictr['Band'].append(atoms[1])
-            dictr['forest yes'].append(atoms[4])
-            dictr['forest no'].append(atoms[6])
-            dictr['weather'].append(atoms[9])
-            dictr['no PIs'].append(atoms[13])
-            dictr['completed'].append(atoms[15])
-
-        if len(dictr) == 0:
-            print(WARN_STR + 'Nothing to report')
-            QApplication.processEvents()
-            return
-
-        dictr_df = DataFrame(dictr)
-        if notepad_flag:
-            scrtch_file = join(self.settings['log_dir'], 'run_report')
-            dictr_df.to_csv(scrtch_file, index=False, sep='\t')
-            ret_code = subprocess.run(['notepad.exe', scrtch_file])
-        else:
-            mess_content = dictr_df.to_string(index=False, justify='center', col_space=10)
-            w_mess_box = QMessageBox()
-            w_mess_box.setWindowTitle("Banded simulations report")
-            w_mess_box.setText(mess_content)
-            w_mess_box.setStandardButtons(QMessageBox.Cancel)
-            ret_code = w_mess_box.exec()
-        return
-
-    def cleanSimsClicked(self):
+    def viewRunReport(self):
         """
         C
         """

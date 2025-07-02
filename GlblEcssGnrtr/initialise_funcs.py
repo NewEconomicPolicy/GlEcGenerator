@@ -48,16 +48,13 @@ def initiation(form, variation=''):
     """
     this function is called to initiate the programme to process non-GUI settings.
     """
-    glbl_ecsse_str = 'global_ecosse_config_hwsd_'
     fname_setup = 'global_ecosse_setup' + variation + '.json'
 
     # retrieve settings
     # =================
-    _read_setup_file(form, fname_setup, variation)
+    _read_setup_file(form, fname_setup)
 
-    form.glbl_ecsse_str = glbl_ecsse_str
     form.project_files = build_and_display_projects(form)
-    form.band_reports = None
 
     # set up logging
     # ==============
@@ -71,7 +68,7 @@ def initiation(form, variation=''):
 
     return
 
-def _read_setup_file(form, fname_setup, variation=''):
+def _read_setup_file(form, fname_setup):
     """
     read settings used for programme from the setup file, if it exists,
     or create setup file using default values if file does not exist
@@ -121,7 +118,7 @@ def _read_setup_file(form, fname_setup, variation=''):
     if not isdir(config_dir):
         makedirs(config_dir)
 
-    form.settings['config_file'] = join(config_dir, 'XXX.jsom')
+    form.settings['config_file'] =  join(config_dir, 'global_ecosse_config' + '.json')
 
     # ==============
     mask_fn = form.settings['mask_fn']
@@ -245,6 +242,7 @@ def write_default_setup_file(setup_file):
         json_dump(_default_setup, fsetup, indent=2, sort_keys=True)
         fsetup.close()
         return _default_setup
+
 def build_and_display_projects(form):
     """
     is called at start up and when user creates a new project
@@ -256,7 +254,7 @@ def build_and_display_projects(form):
             sims_dir = join(path_nm, 'EcosseSims')
             if isdir(sims_dir):
                 project = split(path_nm)[1]
-                projects.append(split(project))
+                projects.append(project)
 
     form.projects = projects
 
@@ -324,12 +322,11 @@ def read_config_file(form):
     form.bbox = config[grp]['bbox']
     form.combo10w.setCurrentText(weather_resource)
     change_weather_resource(form, weather_resource)
-    form.band_reports = None
 
     # land uses
     # =========
     grp = 'landuseGUI'
-    if grp in config and form.mask_fn is not None:
+    if grp in config and form.settings['mask_fn'] is not None:
         for lu in form.w_hilda_lus:
             if config[grp][lu]:
                 form.w_hilda_lus[lu].setCheckState(2)
@@ -404,16 +401,11 @@ def read_config_file(form):
 
     return True
 
-def write_config_file(form, message_flag=True):
+def write_config_file(form):
     """
     write current selections to config file
     """
-    study = form.w_study.text()
-
-    # facilitate multiple config file choices
-    # =======================================
-    glbl_ecsse_str = form.glbl_ecsse_str
-    config_file = join(form.config_dir, glbl_ecsse_str + study + '.txt')
+    config_file = form.settings['config_file']
 
     # TODO: might want to consider where else in the work flow to save these settings
     weather_resource = form.combo10w.currentText()
@@ -426,12 +418,21 @@ def write_config_file(form, message_flag=True):
                                                                         sim_strt_year, sim_end_year)
     grid_resol = form.combo16.currentIndex()
 
-    # TODO: simplify by eliminating form.bbox
-    # =======================================
-    if hasattr(form, 'litter_defn'):
-        bbox = form.litter_defn.bbox
-    else:
-        bbox = form.bbox
+    # prepare the bounding box
+    # ========================
+
+    try:
+        ll_lon = float(form.w_ll_lon.text())
+        ll_lat = float(form.w_ll_lat.text())
+        ur_lon = float(form.w_ur_lon.text())
+        ur_lat = float(form.w_ur_lat.text())
+    except ValueError as err:
+        print('Problem writing bounding box to config file: ' + str(err))
+        ur_lon = 0.0
+        ur_lat = 0.0
+        ll_lon = 0.0
+        ll_lat = 0.0
+    bbox = list([ll_lon, ll_lat, ur_lon, ur_lat])
 
     config = {
         'minGUI': {
@@ -439,13 +440,11 @@ def write_config_file(form, message_flag=True):
             'weatherResource': weather_resource,
             'aveWthrFlag': form.w_ave_weather.isChecked(),
             'usePolyFlag': False,
-            'baseLine': form.w_baseline.isChecked(),
             'maxSims': form.w_max_sims.text(),
             'strtBand': form.w_strt_band.text(),
             'endBand': form.w_end_band.text()
         },
         'cmnGUI': {
-            'study': form.w_study.text(),
             'histStrtYr': hist_strt_year,
             'histEndYr': hist_end_year,
             'climScnr': scenario,
@@ -462,80 +461,9 @@ def write_config_file(form, message_flag=True):
             'all': form.w_hilda_lus['all'].isChecked()
         }
     }
-    if isfile(config_file):
-        descriptor = 'Overwrote existing'
-    else:
-        descriptor = 'Wrote new'
-    if study != '':
-        with open(config_file, 'w') as fconfig:
-            json_dump(config, fconfig, indent=2, sort_keys=True)
-            fconfig.close()
-            if message_flag:
-                print('\n' + descriptor + ' configuration file ' + config_file)
-            else:
-                print()
-
-def write_study_definition_file(form):
-    """
-    write study definition file
-    tailored to Ver2SpVc
-    """
-
-    # do not write study def file
-    # ===========================
-    if not hasattr(form, 'bbox'):
-        return
-
-    # prepare the bounding box
-    # ========================
-    study = form.w_study.text()
-
-    weather_resource = form.combo10w.currentText()
-    if weather_resource == 'CRU':
-        fut_clim_scen = form.combo10.currentText()
-    else:
-        fut_clim_scen = weather_resource
-
-    land_use = 'unk2unk'
-
-    # TODO: simplify by eliminating form.bbox
-    # =======================================
-    if hasattr(form, 'litter_defn'):
-        bbox = form.litter_defn.bbox
-    else:
-        bbox = form.bbox
-
-    # convert resolution to granular then to decimal
-    # ==============================================
-    resol_decimal = calculate_grid_cell(form)
-    study_defn = {
-        'studyDefn': {
-            'bbox': bbox,
-            'climScnr': fut_clim_scen,
-            'dailyMode': False,
-            'futStrtYr': form.combo11s.currentText(),
-            'futEndYr': form.combo11e.currentText(),
-            'histStrtYr': form.combo09s.currentText(),
-            'histEndYr': form.combo09e.currentText(),
-            'land_use': land_use,
-            'luCsvFname': '',
-            'province': 'xxxx',
-            'resolution': resol_decimal,
-            'shpe_file': 'xxxx',
-            'study': study,
-            'version': form.version
-        }
-    }
-
-    # copy to sims area
-    # =================
-    if study == '':
-        print('*** Warning *** study not defined  - could not write study definition file')
-    else:
-        study_defn_file = join(form.sims_dir, study + '_study_definition.txt')
-        with open(study_defn_file, 'w') as fstudy:
-            json_dump(study_defn, fstudy, indent=2, sort_keys=True)
-            print('\nWrote study definition file ' + study_defn_file)
+    with open(config_file, 'w') as fconfig:
+        json_dump(config, fconfig, indent=2, sort_keys=True)
+        print('Wrote configuration file ' + config_file)
 
     return
 
