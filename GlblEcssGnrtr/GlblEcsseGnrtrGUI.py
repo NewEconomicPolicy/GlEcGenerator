@@ -104,7 +104,6 @@ class Form(QWidget):
                    ' discard all others. The the most dominant soil is defined as having the highest percentage coverage ' \
                    ' of all the soils for that grid cell'
         w_use_dom_soil.setToolTip(helpText)
-        # grid.addWidget(w_use_dom_soil, irow, 1, 1, 2)
         grid.addWidget(w_use_dom_soil, irow, 1)
         self.w_use_dom_soil = w_use_dom_soil
 
@@ -113,24 +112,8 @@ class Form(QWidget):
                    ' as a proportion of the area of the meta cell. Select this option to use the mu global with the highest coverage,\n' \
                    ' discard the others and aggregate their coverages to the selected mu global'
         w_use_high_cover.setToolTip(helpText)
-        # grid.addWidget(w_use_high_cover, irow, 3, 1, 2)
         grid.addWidget(w_use_high_cover, irow, 2)
         self.w_use_high_cover = w_use_high_cover
-
-        # AOI bounding box detail
-        # =======================
-        irow += 1
-        w_lbl07 = QLabel('AOI bounding box:')
-        helpText = 'Select NetCDF file of plant inputs'
-        w_lbl07.setToolTip(helpText)
-        w_lbl07.setAlignment(Qt.AlignRight)
-        grid.addWidget(w_lbl07, irow, 0)
-
-        w_hwsd_bbox = QLabel('')
-        w_hwsd_bbox.setToolTip(helpText)
-        w_hwsd_bbox.setAlignment(Qt.AlignLeft)
-        self.w_hwsd_bbox = w_hwsd_bbox
-        grid.addWidget(self.w_hwsd_bbox, irow, 1, 1, 5)
 
         # create weather and grid resolution
         # ==================================
@@ -333,20 +316,6 @@ class Form(QWidget):
         """
         self.w_report.clear()
 
-    def adjustLuChckBoxes(self):
-        """
-        C
-        """
-        for lu in self.w_hilda_lus:
-            if lu == 'all':
-                continue
-            else:
-                if self.w_hilda_lus['all'].isChecked():
-                    self.w_hilda_lus[lu].setEnabled(False)
-                else:
-                    self.w_hilda_lus[lu].setEnabled(True)
-        return
-
     def weatherResourceChanged(self):
         """
         C
@@ -364,33 +333,19 @@ class Form(QWidget):
         """
         C
         """
-        func_name = __prog__ + ' saveClicked'
-
-        # check for spaces
-        # ================
-        study = self.w_study.text()
-        if study == '':
-            print('study cannot be blank')
-        else:
-            if study.find(' ') >= 0:
-                print('*** study name must not have spaces ***')
-            else:
-                save_clicked(self)
-                build_and_display_projects(self)
+        save_clicked(self)
+        build_and_display_projects(self)
 
     def cancelClicked(self):
         """
         C
         """
-        func_name = __prog__ + ' cancelClicked'
-
         exit_clicked(self, write_config_flag=False)
 
     def exitClicked(self):
         """
         exit cleanly
         """
-
         exit_clicked(self)
 
     def changeProject(self):

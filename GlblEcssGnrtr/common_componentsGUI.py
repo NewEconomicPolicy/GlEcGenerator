@@ -190,7 +190,7 @@ def commonSection(form, grid, irow):
     grid.addWidget(QLabel(''), irow, 2)     # spacer
 
     # ======
-    irow = _chck_box_inpt_choices(form, grid, irow)
+    # irow = _chck_box_inpt_choices(form, grid, irow)
 
     # ======
     irow += 1

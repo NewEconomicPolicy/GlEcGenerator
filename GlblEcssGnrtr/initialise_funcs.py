@@ -34,7 +34,7 @@ from weather_datasets import read_weather_dsets_detail
 from hwsd_bil import check_hwsd_integrity
 
 MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'maxSims', 'endBand', 'strtBand']
-CMN_GUI_LIST = ['study', 'histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol']
+CMN_GUI_LIST = ['histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol']
 
 WARN_STR = '*** Warning *** '
 ERROR_STR = '*** Error *** '
@@ -323,21 +323,6 @@ def read_config_file(form):
     form.combo10w.setCurrentText(weather_resource)
     change_weather_resource(form, weather_resource)
 
-    # land uses
-    # =========
-    grp = 'landuseGUI'
-    if grp in config and form.settings['mask_fn'] is not None:
-        for lu in form.w_hilda_lus:
-            if config[grp][lu]:
-                form.w_hilda_lus[lu].setCheckState(2)
-            else:
-                form.w_hilda_lus[lu].setCheckState(0)
-
-        form.adjustLuChckBoxes()
-    else:
-        for lu in form.w_hilda_lus:
-            form.w_hilda_lus[lu].setCheckState(0)
-
     # common area
     # ===========
     grp = 'cmnGUI'
@@ -350,13 +335,11 @@ def read_config_file(form):
 
     # other settings
     # ==============
-    form.w_study.setText(str(config[grp]['study']))
     hist_strt_year = config[grp]['histStrtYr']
     hist_end_year = config[grp]['histEndYr']
     scenario = config[grp]['climScnr']
     sim_strt_year = config[grp]['futStrtYr']
     sim_end_year = config[grp]['futEndYr']
-    form.w_equimode.setText(str(config[grp]['eqilMode']))
     form.combo16.setCurrentIndex(config[grp]['gridResol'])
 
     # record weather settings
@@ -392,12 +375,6 @@ def read_config_file(form):
     form.req_resol_granul = None
     form.w_use_dom_soil.setChecked(True)
     form.w_use_high_cover.setChecked(True)
-
-    if form.python_exe == '' or form.runsites_py == '' or form.runsites_config_file is None:
-        print('Could not activate Run Ecosse widget - python: {}\trunsites: {}\trunsites_config_file: {}'
-              .format(form.python_exe, form.runsites_py, form.runsites_config_file))
-        form.w_run_ecosse.setEnabled(False)
-        form.w_auto_spec.setEnabled(False)
 
     return True
 
@@ -451,14 +428,6 @@ def write_config_file(form):
             'futStrtYr': sim_strt_year,
             'futEndYr': sim_end_year,
             'gridResol': grid_resol
-        },
-        'landuseGUI': {
-            'cropland': form.w_hilda_lus['cropland'].isChecked(),  # '', 'grassland', 'all'
-            'pasture': form.w_hilda_lus['pasture'].isChecked(),
-            'other': form.w_hilda_lus['other'].isChecked(),
-            'forest': form.w_hilda_lus['forest'].isChecked(),
-            'grassland': form.w_hilda_lus['grassland'].isChecked(),
-            'all': form.w_hilda_lus['all'].isChecked()
         }
     }
     with open(config_file, 'w') as fconfig:
