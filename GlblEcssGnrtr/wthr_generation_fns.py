@@ -40,26 +40,28 @@ LTA_RECS_FN = 'lta_ave.txt'
 
 SPACER_LEN = 12
 
-def make_wthr_coords_lookup(climgen):
+def make_wthr_coords_lookup(form):
     """
     C
     """
-    func_name = __prog__ + ' ClimGenNC __init__'
+    prjct = form.w_combo00s.currentText()
+    fut_clim_scen = form.combo10.currentText()
 
-    wthr_out_dir = climgen.wthr_out_dir
+    wthr_out_dir = join(form.settings['prj_drive'], prjct, 'Wthr', fut_clim_scen)
     if not isdir(wthr_out_dir):
         makedirs(wthr_out_dir)
 
+    num_sims = 0
+    subdirs_raw = None
     for directory, subdirs_raw, files in walk(wthr_out_dir):
         num_sims = len(subdirs_raw)
         break
 
-    if num_sims == 0:
+    if num_sims == 0 or subdirs_raw is None:
         print(WARN_STR + 'no sub-directories under path ' + wthr_out_dir)
         QApplication.processEvents()
         return
 
-    #
     # ===============================================================
     recs = []
     for gran_coord in subdirs_raw:
@@ -183,17 +185,9 @@ def generate_all_weather(form):
 
         last_time = update_wthr_progress(last_time, nwrttn)
 
-    # close NC files
-    # ==============
-    """
-    for metric in list(['precip', 'tas']):
-        hist_wthr_dsets[metric].close()
-        fut_wthr_dsets[metric].close()
-    """
-
     # write coords file
     # =================
-    make_wthr_coords_lookup(climgen)
+    make_wthr_coords_lookup(form)
     mess = 'Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n'   
     print(mess)
 

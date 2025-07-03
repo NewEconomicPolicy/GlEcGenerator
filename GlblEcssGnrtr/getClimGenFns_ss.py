@@ -72,7 +72,7 @@ def fetch_wthr_dset_overlap(wthr_set1, wthr_set2):
     lon_ur = min(wthr_set1['lon_ur'], wthr_set2['lon_ur'])
     lat_ur = min(wthr_set1['lat_ur'], wthr_set2['lat_ur'])
 
-    return (lon_ll, lat_ll, lon_ur, lat_ur)
+    return lon_ll, lat_ll, lon_ur, lat_ur
 
 def genLocalGrid(wthr_set, bbox_wthr, bbox_aoi):
     """
