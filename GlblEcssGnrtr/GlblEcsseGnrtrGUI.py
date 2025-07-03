@@ -22,7 +22,7 @@ from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
                              QComboBox, QPushButton, QCheckBox, QFileDialog, QTextEdit, QMessageBox)
 
-from common_componentsGUI import (exit_clicked, commonSection, projectTextChanged, save_clicked)
+from common_componentsGUI import (exit_clicked, climate_section, projectTextChanged, save_clicked)
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell, grid_resolutions, glblecss_limit_sims, glblecss_bounding_box
 
 from generate_soil_vars_nc import make_soil_nc_outputs
@@ -117,7 +117,7 @@ class Form(QWidget):
 
         # create weather and grid resolution
         # ==================================
-        irow = commonSection(self, grid, irow)
+        irow = climate_section(self, grid, irow)
         irow = grid_resolutions(self, grid, irow)
         irow += 1
         grid.addWidget(QLabel(''), irow, 2)  # spacer

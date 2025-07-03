@@ -40,7 +40,6 @@ def join_hist_fut_to_all_wthr(climgen, pettmp_hist, pettmp_fut):
     for metric in pettmp_fut:
         pettmp_all[metric] = {}
 
-
     for gran_coord in pettmp_hist['precipitation']:
 
         if gran_coord not in pettmp_fut['precipitation']:

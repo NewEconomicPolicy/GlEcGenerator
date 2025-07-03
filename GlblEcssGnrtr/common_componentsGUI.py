@@ -63,27 +63,10 @@ def _chck_box_inpt_choices(form, grid, irow):
 
     return irow
 
-def commonSection(form, grid, irow):
+def climate_section(form, grid, irow):
     """
     C
     """
-
-    # default to EWEMBI
-    # =================
-    # hist_syears, hist_eyears, fut_syears, fut_eyears, scenarios = get_weather_parms(form, 'CRU')
-    equimodeDflt = '9.5'
-    form.depths = list([30,100]) # soil depths
-
-    luTypes = {}; lu_type_abbrevs = {}
-    for lu_type, abbrev, ilu in zip(LU_DEFNS['lu_type'], LU_DEFNS['abbrev'], LU_DEFNS['ilu']):
-        luTypes[lu_type] = ilu
-        lu_type_abbrevs[lu_type] = abbrev
-
-    form.land_use_types = luTypes
-    form.lu_type_abbrevs = lu_type_abbrevs
-
-    # resources
-    # =========
     irow += 1
     lbl10w = QLabel('Weather resource:')
     lbl10w.setAlignment(Qt.AlignRight)
@@ -116,81 +99,15 @@ def commonSection(form, grid, irow):
     grid.addWidget(combo10, irow, 3)
     form.combo10 = combo10
 
-    # equilibrium mode
-    # ================
-    lbl12 = QLabel('Equilibrium mode:')
-    lbl12.setAlignment(Qt.AlignRight)
-    helpText = 'mode of equilibrium run, generally OK with 9.5'
-    lbl12.setToolTip(helpText)
-    grid.addWidget(lbl12, irow, 4)
-
-    w_equimode = QLineEdit()
-    w_equimode.setText(equimodeDflt)
-    w_equimode.setFixedWidth(WDGT_SIZE_60)
-    grid.addWidget(w_equimode, irow, 5)
-    form.w_equimode = w_equimode
-
-    # Historic
-    # ========
-    irow += 1
-    lbl09s = QLabel('Historic start year:')
-    lbl09s.setAlignment(Qt.AlignRight)
-    helpText = 'Ecosse requires long term average monthly precipitation and temperature\n' \
-            + 'which is derived from datasets managed by Climatic Research Unit (CRU).\n' \
-            + ' See: http://www.cru.uea.ac.uk/about-cru'
-    lbl09s.setToolTip(helpText)
-    grid.addWidget(lbl09s, irow, 0)
-
-    combo09s = QComboBox()
-    combo09s.setFixedWidth(WDGT_SIZE_60)
-    grid.addWidget(combo09s, irow, 1)
-    form.combo09s = combo09s
-
-    lbl09e = QLabel('End year:')
-    lbl09e.setAlignment(Qt.AlignRight)
-    grid.addWidget(lbl09e, irow, 2)
-
-    combo09e = QComboBox()
-    combo09e.setFixedWidth(WDGT_SIZE_60)
-    grid.addWidget(combo09e, irow, 3)
-    form.combo09e = combo09e
-
-    # Simulation years    
-    # ================
-    irow += 1
-    lbl11s = QLabel('Simulation start year:')
-    helpText = 'Simulation start and end years determine the number of growing seasons to simulate\n' \
-            + 'CRU and CORDEX resources run to 2100 whereas EObs resource runs to 2017'
-    lbl11s.setToolTip(helpText)
-    lbl11s.setAlignment(Qt.AlignRight)
-    grid.addWidget(lbl11s, irow, 0)
-
-    combo11s = QComboBox()
-    combo11s.setFixedWidth(WDGT_SIZE_60)
-    grid.addWidget(combo11s, irow, 1)
-    form.combo11s = combo11s
-
-    lbl11e = QLabel('End year:')
-    lbl11e.setAlignment(Qt.AlignRight)
-    grid.addWidget(lbl11e, irow, 2)
-
-    combo11e = QComboBox()
-    combo11e.setFixedWidth(WDGT_SIZE_60)
-    grid.addWidget(combo11e, irow, 3)
-    form.combo11e = combo11e
-    
-    w_ave_weather = QCheckBox('Use average weather')
-    helpText = 'Select this option to use average weather, from the CRU year range, for\n' \
-               ' the climate file for each of the simulation years'
-    w_ave_weather.setToolTip(helpText)
-    grid.addWidget(w_ave_weather, irow, 4, 1, 2)
-    form.w_ave_weather = w_ave_weather
-
-    irow += 1
-    grid.addWidget(QLabel(''), irow, 2)     # spacer
-
-    # ======
-    # irow = _chck_box_inpt_choices(form, grid, irow)
+    # dataset start and end years
+    # ===========================
+    for wthr_set in form.weather_sets:
+        irow += 1
+        year_strt = form.weather_sets[wthr_set]['year_start']
+        year_end = form.weather_sets[wthr_set]['year_end']
+        lbl_strt_end = QLabel(wthr_set + ' start year: {}\tend year: {}'.format(year_strt, year_end))
+        lbl_strt_end.setAlignment(Qt.AlignLeft)
+        grid.addWidget(lbl_strt_end, irow, 1, 1, 4)
 
     # ======
     irow += 1

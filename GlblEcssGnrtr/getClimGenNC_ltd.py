@@ -95,35 +95,23 @@ class ClimGenNC(object,):
         else:
             sim_mnthly_flag = True
 
-            # determine user choices
         # ======================
-        if hasattr(form, 'combo10w'):
-            wthr_rsrce = form.combo10w.currentText()
-            if fut_clim_scen is None:
-                fut_clim_scen = form.combo10.currentText()
-            hist_start_year = int(form.combo09s.currentText())
-            hist_end_year = int(form.combo09e.currentText())
-            ave_weather_flag = form.w_ave_weather.isChecked()
-            sim_start_year = int(form.combo11s.currentText())   # might need these later
-            sim_end_year = int(form.combo11e.currentText())
-        else:
-            wthr_rsrce = form.weather_resource
-            fut_clim_scen = form.scenario
-            hist_start_year = form.hist_strt_year
-            hist_end_year = form.hist_end_year
-            ave_weather_flag = form.ave_weather_flag
-            sim_start_year = form.sim_strt_year
-            sim_end_year = form.sim_end_year
+        wthr_rsrce = form.combo10w.currentText()
+        dset_hist = form.weather_set_linkages[wthr_rsrce][0]
+        dset_fut = form.weather_set_linkages[wthr_rsrce][1]
+
+        if fut_clim_scen is None:
+            fut_clim_scen = form.combo10.currentText()
+        hist_start_year = form.weather_sets[dset_hist]['year_start']
+        hist_end_year = form.weather_sets[dset_hist]['year_end']
+        sim_start_year = form.weather_sets[dset_fut]['year_start']
+        sim_end_year = form.weather_sets[dset_fut]['year_end']
 
         self.weather_resource = wthr_rsrce
-        if hasattr(form, 'sims_dir'):
-            wthr_out_dir = join(split(form.sims_dir)[0], 'Wthr', fut_clim_scen)
-            if not isdir(wthr_out_dir):
-                makedirs(wthr_out_dir)
-        else:
-            wthr_out_dir = None
-
+        prjct = form.w_combo00s.currentText()
+        wthr_out_dir = join(form.settings['prj_drive'], prjct, 'Wthr', fut_clim_scen)
         self.wthr_out_dir = wthr_out_dir
+
         self.coords_lookup = None
         self.sim_mnthly_flag = sim_mnthly_flag
 
@@ -179,12 +167,8 @@ class ClimGenNC(object,):
         self.fut_wthr_set_defn = fut_wthr_set
         self.hist_wthr_set_defn = hist_wthr_set
 
-        # make sure start and end years are within dataset limits
         # =======================================================
-        hist_start_year = max(hist_wthr_set['year_start'], hist_start_year)
-        hist_end_year = min(hist_wthr_set['year_end'], hist_end_year)
-
-        self.ave_weather_flag = ave_weather_flag
+        self.ave_weather_flag = None
         num_hist_years = hist_end_year - hist_start_year + 1
         self.num_hist_years = num_hist_years
         self.hist_start_year = hist_start_year

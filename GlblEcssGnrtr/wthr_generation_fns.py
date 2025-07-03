@@ -40,19 +40,13 @@ LTA_RECS_FN = 'lta_ave.txt'
 
 SPACER_LEN = 12
 
-def make_wthr_coords_lookup(form):
+def make_wthr_coords_lookup(climgen):
     """
     C
     """
     func_name = __prog__ + ' ClimGenNC __init__'
 
-    if not hasattr(form, 'combo10'):
-        print(ERROR_STR + 'This function ' + func_name + ' requires attribute combo10')
-        QApplication.processEvents()
-        return -1
-
-    fut_clim_scen = form.combo10.currentText()
-    wthr_out_dir = join(split(form.sims_dir)[0], 'Wthr', fut_clim_scen)
+    wthr_out_dir = climgen.wthr_out_dir
     if not isdir(wthr_out_dir):
         makedirs(wthr_out_dir)
 
@@ -93,19 +87,22 @@ def generate_all_weather(form):
     """
     C
     """
+    lon_ll_aoi = float(form.w_ll_lon.text())
+    lat_ll_aoi = float(form.w_ll_lat.text())
+    lon_ur_aoi = float(form.w_ur_lon.text())
+    lat_ur_aoi = float(form.w_ur_lat.text())
+    '''
     lat_ll_aoi = form.hwsd_mu_globals.lat_ll_aoi
     lon_ll_aoi = form.hwsd_mu_globals.lon_ll_aoi
     lat_ur_aoi = form.hwsd_mu_globals.lat_ur_aoi
     lon_ur_aoi = form.hwsd_mu_globals.lon_ur_aoi
+    '''
     bbox_aoi = list([lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi])
 
     max_cells = int(form.w_max_sims.text())
 
     resol_deg = 0.5
-    resol_d2 = resol_deg/2
-
-    sims_dir = form.sims_dir
-    study = form.w_study.text()
+    study = form.w_combo00s.currentText()
 
     wthr_set_nm = form.weather_set_linkages['EFISCEN-ISIMIP'][1]
     this_gcm = wthr_set_nm.split('_')[0]
@@ -196,7 +193,7 @@ def generate_all_weather(form):
 
     # write coords file
     # =================
-    make_wthr_coords_lookup(form)
+    make_wthr_coords_lookup(climgen)
     mess = 'Completed weather set: ' + this_gcm + '\tScenario: ' + scnr + '\n'   
     print(mess)
 

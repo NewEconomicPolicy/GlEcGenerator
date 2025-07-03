@@ -32,14 +32,14 @@ from glbl_ecss_cmmn_cmpntsGUI import print_resource_locations
 from set_up_logging import set_up_logging
 from weather_datasets import read_weather_dsets_detail
 from hwsd_bil import check_hwsd_integrity
+from shape_funcs import format_bbox
 
-MIN_GUI_LIST = ['weatherResource', 'aveWthrFlag', 'bbox', 'maxSims', 'endBand', 'strtBand']
-CMN_GUI_LIST = ['histStrtYr', 'histEndYr', 'climScnr', 'futStrtYr', 'futEndYr', 'gridResol']
+MIN_GUI_LIST = ['weatherResource', 'bbox', 'maxSims', 'endBand', 'strtBand']
+CMN_GUI_LIST = ['climScnr', 'gridResol']
 
 WARN_STR = '*** Warning *** '
 ERROR_STR = '*** Error *** '
-SETTINGS_LIST = ['config_dir', 'fname_png', 'hwsd_dir', 'log_dir', 'mask_fn', 'shp_dir', 'prj_drive', 'python_exe',
-                 'weather_dir']
+SETTINGS_LIST = ['config_dir', 'fname_png', 'hwsd_dir', 'log_dir', 'shp_dir', 'prj_drive', 'python_exe', 'weather_dir']
 RUN_SETTINGS = ['completed_max', 'start_at_band', 'space_remaining_limit', 'kml_flag', 'soil_test_flag', 'zeros_file']
 BBOX_DEFAULT = [116.90045, 28.2294, 117.0, 29.0]  # bounding box default - somewhere in SE Europe
 sleepTime = 5
@@ -121,16 +121,6 @@ def _read_setup_file(form, fname_setup):
     form.settings['config_file'] =  join(config_dir, 'global_ecosse_config' + '.json')
 
     # ==============
-    mask_fn = form.settings['mask_fn']
-    mess = '\tHILDA land use mask file: ' + mask_fn
-    if isfile(mask_fn):
-        print(mess)
-    else:
-        if mask_fn != '':
-            print(WARN_STR + mess + ' does not exist')
-        form.settings['mask_fn'] = None
-
-    # ==============
     python_exe = form.settings['python_exe']
     mess = '\tPython interpreter: ' + python_exe
     if isfile(python_exe):
@@ -151,7 +141,7 @@ def _read_setup_file(form, fname_setup):
         exit(0)
 
     # ===================
-    weather_dir = form.settings['hwsd_dir']
+    weather_dir = form.settings['weather_dir']
     if isdir(weather_dir):
         form.weather_dir = weather_dir
         form.settings['weather_dir'] = weather_dir
@@ -163,7 +153,7 @@ def _read_setup_file(form, fname_setup):
     # check weather data
     # ==================
     avlbl_wthr_rsrcs = ['CRU', 'EObs', 'CHESS', 'HARMONIE', 'EFISCEN-ISIMIP']
-    rqurd_wthr_rsrcs = ['CRU' 'EFISCEN-ISIMIP']
+    rqurd_wthr_rsrcs = ['CRU', 'EFISCEN-ISIMIP']
     read_weather_dsets_detail(form, rqurd_wthr_rsrcs)
 
     # TODO: most of these are not used
@@ -220,9 +210,7 @@ def write_default_setup_file(setup_file):
             'hwsd_dir': data_path + 'HWSD_NEW',
             'images_dir': outputs_path + 'images',
             'log_dir': root_dir_user + 'logs',
-            'mask_fn': data_path + 'Hilda_land_use\\hildap_vGLOB-1.0-f',
             'python_exe': 'E:\\Python38\\python.exe',
-            'runsites_py': 'G:\\AbUnivGit\\RunEcssApp\\SpecGui\\spec_run.py',
             'shp_dir': data_path + 'CountryShapefiles',
             'sims_dir': outputs_path + 'EcosseSims',
             'weather_dir': data_path
@@ -306,7 +294,7 @@ def read_config_file(form):
     form.w_ll_lat.setText(str(ll_lat))
     form.w_ur_lon.setText(str(ur_lon))
     form.w_ur_lat.setText(str(ur_lat))
-    # form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)    # post HWSD CSV file details
+
 
     # post limit simulations settings
     # ===============================
@@ -318,7 +306,6 @@ def read_config_file(form):
     if weather_resource == '':
         weather_resource = 'EFISCEN-ISIMIP'
 
-    ave_weather = config[grp]['aveWthrFlag']
     form.bbox = config[grp]['bbox']
     form.combo10w.setCurrentText(weather_resource)
     change_weather_resource(form, weather_resource)
@@ -335,36 +322,18 @@ def read_config_file(form):
 
     # other settings
     # ==============
-    hist_strt_year = config[grp]['histStrtYr']
-    hist_end_year = config[grp]['histEndYr']
-    scenario = config[grp]['climScnr']
-    sim_strt_year = config[grp]['futStrtYr']
-    sim_end_year = config[grp]['futEndYr']
     form.combo16.setCurrentIndex(config[grp]['gridResol'])
 
     # record weather settings
     # =======================
-    form.wthr_settings_prev[weather_resource] = record_weather_settings(scenario, hist_strt_year, hist_end_year,
-                                                                        sim_strt_year, sim_end_year)
-    form.combo09s.setCurrentText(hist_strt_year)
-    form.combo09e.setCurrentText(hist_end_year)
+    scenario = config[grp]['climScnr']
     form.combo10.setCurrentText(scenario)
-    form.combo11s.setCurrentText(sim_strt_year)
-    form.combo11e.setCurrentText(sim_end_year)
 
-    # ===================
     # bounding box set up
     # ===================
     area = calculate_area(form.bbox)
     form.fstudy = ''
-    # form.w_bbox.setText(format_bbox(form.bbox, area))
-
-    # set check boxes
-    # ===============
-    if ave_weather:
-        form.w_ave_weather.setCheckState(2)
-    else:
-        form.w_ave_weather.setCheckState(0)
+    form.w_bbox.setText(format_bbox(form.bbox, area))
 
     # limit simulations settings
     # ==========================
@@ -384,20 +353,13 @@ def write_config_file(form):
     """
     config_file = form.settings['config_file']
 
-    # TODO: might want to consider where else in the work flow to save these settings
+    # ========================
     weather_resource = form.combo10w.currentText()
     scenario = form.combo10.currentText()
-    hist_strt_year = form.combo09s.currentText()
-    hist_end_year = form.combo09e.currentText()
-    sim_strt_year = form.combo11s.currentText()
-    sim_end_year = form.combo11e.currentText()
-    form.wthr_settings_prev[weather_resource] = record_weather_settings(scenario, hist_strt_year, hist_end_year,
-                                                                        sim_strt_year, sim_end_year)
     grid_resol = form.combo16.currentIndex()
 
     # prepare the bounding box
     # ========================
-
     try:
         ll_lon = float(form.w_ll_lon.text())
         ll_lat = float(form.w_ll_lat.text())
@@ -415,18 +377,13 @@ def write_config_file(form):
         'minGUI': {
             'bbox': bbox,
             'weatherResource': weather_resource,
-            'aveWthrFlag': form.w_ave_weather.isChecked(),
             'usePolyFlag': False,
             'maxSims': form.w_max_sims.text(),
             'strtBand': form.w_strt_band.text(),
             'endBand': form.w_end_band.text()
         },
         'cmnGUI': {
-            'histStrtYr': hist_strt_year,
-            'histEndYr': hist_end_year,
             'climScnr': scenario,
-            'futStrtYr': sim_strt_year,
-            'futEndYr': sim_end_year,
             'gridResol': grid_resol
         }
     }
@@ -443,7 +400,6 @@ def _write_default_config_file(config_file):
     """
     _default_config = {
         'minGUI': {
-            'aveWthrFlag': False,
             'bbox': BBOX_DEFAULT,
             'cordexFlag': 0,
             'luPiJsonFname': '',
