@@ -34,7 +34,7 @@ from weather_datasets import read_weather_dsets_detail
 from hwsd_bil import check_hwsd_integrity
 from shape_funcs import format_bbox
 
-MIN_GUI_LIST = ['weatherResource', 'bbox', 'maxSims', 'endBand', 'strtBand']
+MIN_GUI_LIST = ['aoi_hwsd_fn', 'weatherResource', 'bbox', 'maxSims', 'endBand', 'strtBand']
 CMN_GUI_LIST = ['climScnr', 'gridResol']
 
 WARN_STR = '*** Warning *** '
@@ -62,9 +62,9 @@ def initiation(form, variation=''):
 
     # if specified then create pandas object read deom HWSD CSV file
     # ==============================================================
-    if 'aoi_fname' in form.settings:
-        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, form.settings['aoi_fname'])
-        # print('Reading AOI HWSD file ' + form.settings['aoi_fname'])
+    if 'aoi_hwsd_fn' in form.settings:
+        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, form.settings['aoi_hwsd_fn'])
+        # print('Reading AOI HWSD file ' + form.settings['aoi_hwsd_fn'])
 
     return
 
@@ -283,10 +283,20 @@ def read_config_file(form):
                 config[grp][key] = str(360)
             else:
                 print(ERROR_STR + 'setting {} is required in group {} of config file {}'.format(key, grp, config_file))
-                return False
+                sleep(sleepTime)
+                sys.exit(0)
 
-    # bounding box set up
-    # ===================
+    # HWSD file bounding box set up
+    # =============================
+    aoi_hwsd_fn = config[grp]['aoi_hwsd_fn']
+    form.w_hwsd_fn.setText(aoi_hwsd_fn)
+    if isfile(aoi_hwsd_fn):
+        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, aoi_hwsd_fn)
+        form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)  # post HWSD CSV file details
+    else:
+        form.hwsd_mu_globals = None
+        print(WARN_STR + 'HWSD AOI file ' + aoi_hwsd_fn + ' does not exist or is not a file')
+
     bbox = config[grp]['bbox']
     area = calculate_area(bbox)
     ll_lon, ll_lat, ur_lon, ur_lat = bbox
@@ -294,7 +304,6 @@ def read_config_file(form):
     form.w_ll_lat.setText(str(ll_lat))
     form.w_ur_lon.setText(str(ur_lon))
     form.w_ur_lat.setText(str(ur_lat))
-
 
     # post limit simulations settings
     # ===============================
@@ -375,6 +384,7 @@ def write_config_file(form):
 
     config = {
         'minGUI': {
+            'aoi_hwsd_fn': form.w_hwsd_fn.text(),
             'bbox': bbox,
             'weatherResource': weather_resource,
             'usePolyFlag': False,

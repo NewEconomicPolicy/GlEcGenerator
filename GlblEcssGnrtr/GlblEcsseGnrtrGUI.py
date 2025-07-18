@@ -11,17 +11,13 @@ __version__ = '0.0.1'
 __author__ = 's03mm5'
 
 import sys
-from os.path import normpath, join
-from os import system, getcwd
-import subprocess
-from time import time
-from pandas import DataFrame
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont
 from PyQt5.QtWidgets import (QLabel, QWidget, QApplication, QHBoxLayout, QVBoxLayout, QGridLayout, QLineEdit,
                              QComboBox, QPushButton, QCheckBox, QFileDialog, QTextEdit, QMessageBox)
 
+from initialise_funcs import read_config_file, initiation, build_and_display_projects
 from common_componentsGUI import (exit_clicked, climate_section, projectTextChanged, save_clicked)
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell, grid_resolutions, glblecss_limit_sims, glblecss_bounding_box
 
@@ -30,7 +26,6 @@ from glbl_ecsse_high_level_sp import generate_all_soil_metrics
 from glbl_ecsse_low_level_fns_sv import fetch_soil_metrics
 
 from weather_datasets import change_weather_resource
-from initialise_funcs import read_config_file, initiation, build_and_display_projects
 from wthr_generation_fns import generate_all_weather, make_wthr_coords_lookup
 from set_up_logging import OutLog
 
@@ -89,6 +84,32 @@ class Form(QWidget):
 
         # ==============
         irow = glblecss_bounding_box(self, grid, irow)
+        irow += 1
+        grid.addWidget(QLabel(''), irow, 2)  # spacer
+
+        # option to use CSV file of cells
+        # ===============================
+        irow += 1
+        w_use_csv_file = QPushButton("HWSD CSV file")
+        helpText = 'Option to enable user to select a CSV file comprising latitude, longitiude and HWSD mu_global.'
+        w_use_csv_file.setToolTip(helpText)
+        grid.addWidget(w_use_csv_file, irow, 0)
+        w_use_csv_file.clicked.connect(self.fetchCsvFile)
+
+        w_hwsd_fn = QLabel('')  # label for HWSD csv file name
+        grid.addWidget(w_hwsd_fn, irow, 2, 1, 5)
+        self.w_hwsd_fn = w_hwsd_fn
+
+        # HWSD AOI bounding box detail
+        # ============================
+        irow += 1
+        w_lbl07 = QLabel('HWSD bounding box:')
+        w_lbl07.setAlignment(Qt.AlignRight)
+        grid.addWidget(w_lbl07, irow, 0)
+
+        self.w_hwsd_bbox = QLabel('')
+        grid.addWidget(self.w_hwsd_bbox, irow, 2, 1, 5)
+
         irow += 1
         grid.addWidget(QLabel(''), irow, 2)  # spacer
 
@@ -276,6 +297,22 @@ class Form(QWidget):
         self.combo10w.currentIndexChanged[str].connect(self.weatherResourceChanged)
 
 # ===============================
+    def fetchCsvFile(self):
+        """
+        QFileDialog returns a tuple for Python 3.5, 3.6
+        """
+        from hwsd_mu_globals_fns import HWSD_mu_globals_csv
+        fname = self.w_hwsd_fn.text()
+        if fname == '':
+            fname = 'junk'
+
+        fname, dummy = QFileDialog.getOpenFileName(self, 'Open file', fname, 'CSV files (*.csv)')
+        if fname != '':
+            self.w_hwsd_fn.setText(fname)
+            hwsd_mu_globals = HWSD_mu_globals_csv(self, fname)
+            mu_global_list = hwsd_mu_globals.mu_global_list
+            self.w_hwsd_bbox.setText(hwsd_mu_globals.aoi_label)
+
     def checkSoilCsv(self):
         """
         C
