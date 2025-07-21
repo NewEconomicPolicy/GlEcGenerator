@@ -34,7 +34,7 @@ from weather_datasets import read_weather_dsets_detail
 from hwsd_bil import check_hwsd_integrity
 from shape_funcs import format_bbox
 
-MIN_GUI_LIST = ['aoi_hwsd_fn', 'weatherResource', 'bbox', 'maxSims', 'endBand', 'strtBand']
+MIN_GUI_LIST = ['aoi_hwsd_fn', 'weatherResource', 'bbox', 'maxSims', 'endBand', 'strtBand', 'useHwsdCsv']
 CMN_GUI_LIST = ['climScnr', 'gridResol']
 
 WARN_STR = '*** Warning *** '
@@ -56,15 +56,8 @@ def initiation(form, variation=''):
 
     form.project_files = build_and_display_projects(form)
 
-    # set up logging
     # ==============
     set_up_logging(form, 'global_ecosse_min')
-
-    # if specified then create pandas object read deom HWSD CSV file
-    # ==============================================================
-    if 'aoi_hwsd_fn' in form.settings:
-        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, form.settings['aoi_hwsd_fn'])
-        # print('Reading AOI HWSD file ' + form.settings['aoi_hwsd_fn'])
 
     return
 
@@ -283,18 +276,25 @@ def read_config_file(form):
                 config[grp][key] = str(360)
             else:
                 print(ERROR_STR + 'setting {} is required in group {} of config file {}'.format(key, grp, config_file))
-                sleep(sleepTime)
-                sys.exit(0)
+                config[grp][key] = ""
+                return False
+
+    use_hwsd = config[grp]['useHwsdCsv']
+    if use_hwsd:
+        form.w_use_hwsd_csv.setChecked(True)
+    else:
+        form.w_use_hwsd_csv.setChecked(False)
 
     # HWSD file bounding box set up
     # =============================
+    form.hwsd_mu_globals = None
     aoi_hwsd_fn = config[grp]['aoi_hwsd_fn']
     form.w_hwsd_fn.setText(aoi_hwsd_fn)
     if isfile(aoi_hwsd_fn):
-        form.hwsd_mu_globals = HWSD_mu_globals_csv(form, aoi_hwsd_fn)
-        form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)  # post HWSD CSV file details
+        if use_hwsd:
+            form.hwsd_mu_globals = HWSD_mu_globals_csv(form, aoi_hwsd_fn)
+            form.w_hwsd_bbox.setText(form.hwsd_mu_globals.aoi_label)  # post HWSD CSV file details
     else:
-        form.hwsd_mu_globals = None
         print(WARN_STR + 'HWSD AOI file ' + aoi_hwsd_fn + ' does not exist or is not a file')
 
     bbox = config[grp]['bbox']
@@ -390,7 +390,8 @@ def write_config_file(form):
             'usePolyFlag': False,
             'maxSims': form.w_max_sims.text(),
             'strtBand': form.w_strt_band.text(),
-            'endBand': form.w_end_band.text()
+            'endBand': form.w_end_band.text(),
+            'useHwsdCsv': form.w_use_hwsd_csv.isChecked()
         },
         'cmnGUI': {
             'climScnr': scenario,

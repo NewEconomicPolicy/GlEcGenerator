@@ -33,6 +33,7 @@ SOIL_HDRS = list(['UID', 'HWSD_Y', 'HWSD_X', 'Latitude', 'Longitude', 'MU_GLOBAL
                   'T_OC', 'T_BULK_DENSITY', 'T_PH_H2O', 'T_SAND', 'T_SILT', 'T_CLAY',
                   'S_OC', 'S_BULK_DENSITY', 'S_PH_H2O', 'S_SAND', 'S_SILT', 'S_CLAY'])
 SOIL_DIR = 'soil_metrics'
+GRANULARITY = 120
 
 WARN_STR = '*** Warning *** '
 ERROR_STR = '*** Error *** '
@@ -136,12 +137,16 @@ class SoilCsvOutputs(object):
 
         self.lgr = form.lgr
         self.hdrs = SOIL_HDRS
-        soil_dir = join(split(form.sims_dir)[0], SOIL_DIR)
+
+        prjct = form.w_combo00s.currentText()
+
+        soil_dir = join(form.settings['prj_drive'], prjct, SOIL_DIR)
         if not isdir(soil_dir):
             mkdir(soil_dir)
 
         self.soil_dir = soil_dir
-        self.study = form.w_study.text()
+        self.study = prjct
+        calculate_grid_cell(form, GRANULARITY)
         self.req_resol_upscale = form.req_resol_upscale
 
         self.output_fobj = None
@@ -172,10 +177,10 @@ def _write_to_soil_file(form, soil_csv, num_band):
     print('Gathering soil data for band {}'.format(num_band))
 
     # instantiate a soil grid and climate objects
-    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.hwsd_dir)
+    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.settings['hwsd_dir'])
 
     # add requested grid resolution attributes to the form object
-    calculate_grid_cell(form, hwsd.granularity)
+    calculate_grid_cell(form, GRANULARITY)
     bbox = form.bbox
 
     # create grid of mu_globals based on bounding box
@@ -200,7 +205,7 @@ def _write_to_soil_file(form, soil_csv, num_band):
     hwsd.bad_muglobals = form.hwsd_mu_globals.bad_mu_globals
     aoi_res, bbox = gen_grid_cells_for_band(hwsd, form.req_resol_upscale)
     if form.w_use_high_cover.isChecked():
-        aoi_res = simplify_aoi(aoi_res)
+        aoi_res = _simplify_aoi(aoi_res)
 
     lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
     num_meta_cells = len(aoi_res)
@@ -300,12 +305,12 @@ def generate_all_soil_metrics(form, max_cells=100000000):
     # ============================ for each PFT end =====================================
     # print('Study bounding box and HWSD CSV file overlap')
     #        ============================================
-    start_at_band = form.start_at_band   # from setup file, generally zero
+    start_at_band = int(form.w_strt_band.text())   # from setup file, generally zero
     print('Starting at band {}'.format(start_at_band))
 
     # extract required values from the HWSD database and simplify if requested
     # ========================================================================
-    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.hwsd_dir)
+    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.settings['hwsd_dir'])
 
     # TODO: patch to be sorted
     # ========================
