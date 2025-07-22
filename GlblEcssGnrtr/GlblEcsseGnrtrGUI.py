@@ -22,7 +22,7 @@ from common_componentsGUI import (exit_clicked, climate_section, projectTextChan
 from glbl_ecss_cmmn_cmpntsGUI import calculate_grid_cell, grid_resolutions, glblecss_limit_sims, glblecss_bounding_box
 
 from generate_soil_vars_nc import make_soil_nc_outputs
-from glbl_ecsse_high_level_sp import generate_all_soil_metrics
+from glbl_ecsse_high_level_sp import generate_soil_metrics
 from glbl_ecsse_low_level_fns_sv import fetch_soil_metrics
 
 from hwsd_mu_globals_fns import HWSD_mu_globals_csv
@@ -85,40 +85,6 @@ class Form(QWidget):
 
         # ==============
         irow = glblecss_bounding_box(self, grid, irow)
-        irow += 1
-        grid.addWidget(QLabel(''), irow, 2)  # spacer
-
-        # option to use HWSD CSV file of cells
-        # ====================================
-        irow += 1
-        w_use_hwsd_csv = QCheckBox('Use HWSD CSV file')
-        helpText = ' '
-        w_use_hwsd_csv.setToolTip(helpText)
-        grid.addWidget(w_use_hwsd_csv, irow, 0, 1, 2)
-        self.w_use_hwsd_csv = w_use_hwsd_csv
-
-        irow += 1
-        w_csv_pshbt = QPushButton("HWSD CSV file")
-        helpText = 'Option to enable user to select a CSV file comprising latitude, longitiude and HWSD mu_global.'
-        w_csv_pshbt.setToolTip(helpText)
-        w_csv_pshbt.setFixedWidth(STD_BTN_SIZE_120)
-        grid.addWidget(w_csv_pshbt, irow, 0)
-        w_csv_pshbt.clicked.connect(self.fetchCsvFile)
-
-        w_hwsd_fn = QLabel('')  # label for HWSD csv file name
-        grid.addWidget(w_hwsd_fn, irow, 1, 1, 5)
-        self.w_hwsd_fn = w_hwsd_fn
-
-        # HWSD AOI bounding box detail
-        # ============================
-        irow += 1
-        w_lbl07 = QLabel('HWSD bounding box:')
-        w_lbl07.setAlignment(Qt.AlignRight)
-        grid.addWidget(w_lbl07, irow, 0)
-
-        self.w_hwsd_bbox = QLabel('')
-        grid.addWidget(self.w_hwsd_bbox, irow, 1, 1, 5)
-
         irow += 1
         grid.addWidget(QLabel(''), irow, 2)  # spacer
 
@@ -231,7 +197,7 @@ class Form(QWidget):
         w_soil_all.setToolTip(helpText)
         w_soil_all.setFixedWidth(STD_BTN_SIZE_120)
         grid.addWidget(w_soil_all, irow, icol)
-        w_soil_all.clicked.connect(lambda: self.genSoilOutptsClicked(True))
+        w_soil_all.clicked.connect(self.genSoilCsvClicked)
         self.w_soil_all = w_soil_all
 
         icol += 1
@@ -348,12 +314,11 @@ class Form(QWidget):
         """
         generate_all_weather(self)
 
-    def genSoilOutptsClicked(self, all_metrics_flag=False):
+    def genSoilCsvClicked(self):
         """
         C
         """
-        if all_metrics_flag:
-            generate_all_soil_metrics(self)
+        generate_soil_metrics(self)
 
     def genSoilNcClicked(self):
         """

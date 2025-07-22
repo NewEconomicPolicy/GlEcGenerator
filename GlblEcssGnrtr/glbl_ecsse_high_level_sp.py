@@ -16,14 +16,14 @@ __author__ = 's03mm5'
 
 import time
 import csv
-from os.path import join, split, isdir, isfile
+from os.path import join, isdir
 from os import mkdir
 from operator import itemgetter
 from copy import copy
 
 from PyQt5.QtWidgets import QApplication
 
-import hwsd_bil
+from hwsd_bil import HWSD_bil
 
 from hwsd_mu_globals_fns import gen_grid_cells_for_band
 from prepare_ecosse_files import update_progress
@@ -168,64 +168,13 @@ class SoilCsvOutputs(object):
 
         self.writer = csv.writer(self.output_fobj, delimiter=',')
         self.writer.writerow(self.hdrs)
-        return
+        return fname
 
-def _write_to_soil_file(form, soil_csv, num_band):
+def _write_to_soil_file(form, soil_csv, aoi_res):
     """
     Main loop for generating soil data outputs
     """
-    print('Gathering soil data for band {}'.format(num_band))
 
-    # instantiate a soil grid and climate objects
-    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.settings['hwsd_dir'])
-
-    # add requested grid resolution attributes to the form object
-    calculate_grid_cell(form, GRANULARITY)
-    bbox = form.bbox
-
-    # create grid of mu_globals based on bounding box
-    # ===============================================
-    nvals_read = hwsd.read_bbox_hwsd_mu_globals(bbox, form.hwsd_mu_globals, form.req_resol_upscale)
-
-    # retrieve dictionary consisting of mu_globals (keys) and number of occurences (values)
-    # =====================================================================================
-    print('\nRetrieving soil data for band ' + str(num_band))
-    QApplication.processEvents()
-
-    mu_globals = hwsd.get_mu_globals_dict()
-    if mu_globals is None:
-        print('No soil records for AOI: {}\n'.format(bbox))
-        return
-
-    mess = 'Retrieved {} values  of HWSD grid consisting of {} rows and {} columns: ' \
-          '\n\tnumber of unique mu_globals: {}'.format(nvals_read, hwsd.nlats, hwsd.nlons, len(mu_globals))
-    form.lgr.info(mess)
-
-    # for each grid point in the band) return a quintuples of integer Lat/Lon 30 seconds coords, Lat/Lons and mu_global
-    hwsd.bad_muglobals = form.hwsd_mu_globals.bad_mu_globals
-    aoi_res, bbox = gen_grid_cells_for_band(hwsd, form.req_resol_upscale)
-    if form.w_use_high_cover.isChecked():
-        aoi_res = _simplify_aoi(aoi_res)
-
-    lon_ll_aoi, lat_ll_aoi, lon_ur_aoi, lat_ur_aoi = bbox
-    num_meta_cells = len(aoi_res)
-    print('Band aoi LL lat/lon: {} {}\tUR lat/lon: {} {}\t# meta cells: {}'
-                                    .format(lat_ll_aoi, lon_ll_aoi, lat_ur_aoi, lon_ur_aoi, num_meta_cells))
-    QApplication.processEvents()
-
-    if num_meta_cells == 0:
-        mess = 'No aoi_res recs therefore unable to create simulation files... \n'
-        print(mess)
-        form.lgr.info(mess)
-
-        return
-
-    mess = 'Generated {} Area of Interest grid cells for band {} '.format(num_meta_cells, num_band)
-    form.lgr.info(mess)
-    print(mess)
-
-    print('Writing soil data for band {}...'.format(num_band))
-    QApplication.processEvents()
 
     # open land use NC dataset
     # ========================
@@ -264,112 +213,86 @@ def _write_to_soil_file(form, soil_csv, num_band):
                 soil_csv.writer.writerow(out_rec)
 
         completed += 1
+        num_meta_cells = -999
         last_time = update_progress(last_time, start_time, completed, num_meta_cells, skipped, warn_count)
         QApplication.processEvents()
 
-    mess = '\nBand: {}\tskipped: {}\tcompleted: {}'.format(num_band, skipped, completed)
+    mess = '\nskipped: {}\tcompleted: {}'.format(skipped, completed)
     print(mess)
     QApplication.processEvents()
 
     print('')   # spacer
     return completed
 
-def generate_all_soil_metrics(form, max_cells=100000000):
+def generate_soil_metrics(form):
     """
     called from GUI
     """
-    if hasattr(form, 'w_max_sims'):
-        max_cells = int(form.w_max_sims.text())
-    elif hasattr(form, 'w_max_cells'):
-        max_cells = int(form.w_max_cells.text())
-
-    if form.hwsd_mu_globals is None:
-        print(WARN_STR + 'Undetermined HWSD aoi - please select a valid HSWD csv file')
-        QApplication.applicationVersion()
-        return
+    func_name = __prog__ + '\tgenerate_csv_valid_file'
+    max_sims = int(form.w_max_sims.text())
 
     if form.w_use_dom_soil.isChecked():
         use_dom_soil_flag = True
     else:
         use_dom_soil_flag = False
 
-    # lat_ll is the floor i.e. least latitude, of the HWSD aoi which marks the end of the banding loop
-    # ====================================================================================================
-    lat_ll = form.hwsd_mu_globals.lat_ll_aoi
-    lon_ll = form.hwsd_mu_globals.lon_ll_aoi
-    lat_ur = form.hwsd_mu_globals.lat_ur_aoi
-    lon_ur = form.hwsd_mu_globals.lon_ur_aoi
+    # prepare the bounding box
+    # ========================
+    try:
+        lon_ll = float(form.w_ll_lon.text())
+        lat_ll = float(form.w_ll_lat.text())
+        lon_ur = float(form.w_ur_lon.text())
+        lat_ur = float(form.w_ur_lat.text())
+    except ValueError as err:
+        print('Problem retrieving bounding box: ' + str(err))
+        return
+
     bbox = list([lon_ll, lat_ll, lon_ur, lat_ur])
     form.bbox = bbox
 
-    # ============================ for each PFT end =====================================
-    # print('Study bounding box and HWSD CSV file overlap')
-    #        ============================================
-    start_at_band = int(form.w_strt_band.text())   # from setup file, generally zero
-    print('Starting at band {}'.format(start_at_band))
-
     # extract required values from the HWSD database and simplify if requested
     # ========================================================================
-    hwsd = hwsd_bil.HWSD_bil(form.lgr, form.settings['hwsd_dir'])
+    print('Gathering soil data...\t\t(' + func_name + ')')
+    hwsd = HWSD_bil(form.lgr, form.settings['hwsd_dir'])
+    nrows_read = hwsd.read_bbox_mu_globals(bbox)    # create grid of mu_globals based on bounding box
 
-    # TODO: patch to be sorted
-    # ========================
-    mu_global_pairs = {}
-    for mu_global in form.hwsd_mu_globals.mu_global_list:
-        mu_global_pairs[mu_global] = None
+    # retrieve dictionary consisting of mu_globals (keys) and number of occurrences (values)
+    # ======================================================================================
+    mu_globals = hwsd.get_mu_globals_dict()
+    if len(mu_globals) == 0:
+        print('No soil records for this area')
+        return
 
-    soil_recs = hwsd.get_soil_recs(mu_global_pairs)  # list is already sorted
+    mess = 'Generated {} rows and {} columns of HWSD grid for ths AOI: '.format(nrows_read, hwsd.nlons)
+    mess += '\n\tnumber of unique mu_globals: {}'.format(len(mu_globals))
+    print(mess)
+    form.lgr.info(mess)
 
-    # TODO: patch to be sorted
-    # ========================
+    # extract required values from the HWSD database
+    # ==============================================
+    soil_recs = hwsd.get_soil_recs(sorted(mu_globals.keys()))  # sorted key list (of mu_globals)
+
+    # remove undefined mu globals
+    # ===========================
     for mu_global in hwsd.bad_muglobals:
         del(soil_recs[mu_global])
 
-    form.hwsd_mu_globals.soil_recs = simplify_soil_recs(soil_recs, use_dom_soil_flag)
-    form.hwsd_mu_globals.bad_mu_globals = [0] + hwsd.bad_muglobals
-    del hwsd, soil_recs
+    soil_aoi_recs = simplify_soil_recs(soil_recs, use_dom_soil_flag)
+    bad_mu_globals = [0] + hwsd.bad_muglobals
+    del hwsd
 
     # Create empty soil files
     # =======================
     soil_csv = SoilCsvOutputs(form)
-    soil_csv.create_soil_file()
+    fname = soil_csv.create_soil_file()
 
-    # main banding loop
-    # =================
-    ncompleted = 0
-    lat_step = 0.5
-    nsteps = int((lat_ur-lat_ll)/lat_step) + 1
-    for isec in range(nsteps):
-        lat_ll_new = lat_ur - lat_step
-        num_band = isec + 1
+    print('\nPopulating soil file ' + fname)
+    QApplication.processEvents()
+    ncompleted = _write_to_soil_file(form, soil_csv, soil_aoi_recs)  # does actual work
 
-        # if the latitude floor of the band has not reached the ceiling of the HWSD aoi then skip this band
-        # =================================================================================================
-        str_lat_extent = ' with latitude extent of min: {}\tmax: {}\n'.format(round(lat_ll_new, 6), round(lat_ur, 6))
-        if lat_ll_new > form.hwsd_mu_globals.lat_ur_aoi or num_band < start_at_band:
-            print('Skipping out of area band {} of {}'.format(num_band, nsteps)  + str_lat_extent)
-            continue
-
-        print('\nProcessing band {} of {}'.format(num_band, nsteps)  + str_lat_extent)
+    if ncompleted >= max_sims:
+        print('Finished processing after generating {} cells'.format(ncompleted))
         QApplication.processEvents()
-
-        form.bbox = list([lon_ll, lat_ll_new, lon_ur, lat_ur])
-        completed = _write_to_soil_file(form, soil_csv, num_band)  # does actual work
-        ncompleted += 1
-        if ncompleted >= max_cells:
-            print('Finished processing after generating {} cells'.format(ncompleted))
-            QApplication.processEvents()
-            break
-
-        # check to see if the last band is completed
-        # ==========================================
-        if lat_ll > lat_ll_new or num_band == nsteps:
-            print('Finished processing after {} bands of latitude extents'.format(num_band))
-            for ichan in range(len(form.fstudy)):
-                form.fstudy[ichan].close()
-            break
-
-        lat_ur = lat_ll_new
 
     # ==============
     soil_csv.output_fobj.close()    # close CSV file
